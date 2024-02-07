@@ -18,6 +18,7 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/.config/
 - Terminal, IDE, CLI Shell
 - Karabiner-Elements
 - Raycast
+- iStat Menus
 - PowerShell
 
 ## Terminal, IDE, CLI Shell
