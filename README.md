@@ -35,8 +35,9 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/.config/
 - [htop](https://htop.dev/) - Interactive process viewer.
 - [exa](https://the.exa.website/) - `ls` replacement.
 
-## Karabiner-Elements
+## Extras
 
+### Karabiner-Elements
 [Karabiner-Elements](https://karabiner-elements.pqrs.org/) - MacOS keymapping.
 
 - Swap `left ctrl` & `caps lock`.
@@ -46,10 +47,14 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/.config/
 These custom keymaps can be weird at first, but having them available with every
 application on your local machine is _soooo_ worth it and pretty quick to learn.
 
-## Raycast
+### Raycast
 
 [Raycast](https://raycast.com) - Improved Spotlight search & much more for MacOS.
 The built-in clipboard history, file search, and calculator are very handy.
+
+### iStat Menus
+
+[iStat Menus](https://bjango.com/mac/istatmenus/) - System monitoring for MacOS.
 
 ## PowerShell
 
