@@ -16,14 +16,15 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/.config/
 ## Table of Contents
 
 - Terminal, IDE, CLI Shell
-- Karabiner-Elements
-- Raycast
-- iStat Menus
+- Extras
+  - Karabiner-Elements
+  - Raycast
+  - iStat Menus
 - PowerShell
 
 ## Terminal, IDE, CLI Shell
 
-- [iTerm2](https://iterm2.com/documentation.html) - MacOS Terminal Emulator.
+- [iTerm2](https://iterm2.com/documentation.html) - MacOS Terminal emulator.
 - [LazyVim](https://lazyvim.org) - Custom LazyVim config, settings for TypeScript/React/Tailwind,
   GoLang, Rust, etc.
 - [tmux](https://github.com/tmux/tmux/wiki) - Terminal multiplexer.
