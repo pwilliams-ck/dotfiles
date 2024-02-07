@@ -39,9 +39,9 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/.config/
 
 [Karabiner-Elements](https://karabiner-elements.pqrs.org/) - MacOS keymapping.
 
-- Swap `left ctrl` & `caps lock`
-- `left ctrl` + `h`, `j`, `k`, `l`
-- `left ctrl` + `[` = `esc`
+- Swap `left ctrl` & `caps lock`.
+- `left ctrl` + `h`, `j`, `k`, `l` --> `left`, `up`, `down`, `right` arrow keys.
+- `left ctrl` + `[` --> `esc`
 
 These custom keymaps can be weird at first, but having them available with every
 application on your local machine is _soooo_ worth it and pretty quick to learn.
