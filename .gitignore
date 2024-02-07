@@ -64,9 +64,10 @@ Pods/
 # Fish local config
 .config/fish/config-local.fish
 .config/fish/fish_variables.x86_64
-/fish/functions/
-/fish/completions/
+/fish/functions
+/fish/completions
 /fish/fish_variables
+/fish
 
 # Karabiner
 .config/karabiner/automatic_backups
