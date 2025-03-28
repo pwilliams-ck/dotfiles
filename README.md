@@ -18,22 +18,16 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/.config/
 - Terminal, IDE, CLI Shell
 - Karabiner-Elements
 - Raycast
-- PowerShell
 
 ## Terminal, IDE, CLI Shell
 
-- [iTerm2](https://iterm2.com/documentation.html) - MacOS Terminal Emulator.
-- [LazyVim](https://lazyvim.org) - Custom LazyVim config, settings for TypeScript/React/Tailwind,
-  GoLang, Rust, etc.
-- [tmux](https://github.com/tmux/tmux/wiki) - Terminal multiplexer.
-- [Fish Shell](https://fishshell.com/) - CLI Shell.
-- [Fisher](https://github.com/jorgebucaran/fisher) - Fish plugin manager.
-- [Tide](https://github.com/IlanCosman/tide) - Customizable Shell theme.
-- [Nerd fonts](https://github.com/ryanoasis/nerd-fonts) - Powerline-patched fonts.
-  I use Hack.
-- [z for fish](https://github.com/jethrokuan/z) - Git directory jumping.
-- [htop](https://htop.dev/) - Interactive process viewer.
-- [exa](https://the.exa.website/) - `ls` replacement.
+- [iTerm2](https://iterm2.com/documentation.html) - MacOS Terminal Emulator
+- [LazyVim](https://lazyvim.org) - Custom LazyVim config
+- [tmux](https://github.com/tmux/tmux/wiki) - Terminal multiplexer
+- [zsh](https://www.zsh.org/) - Shell
+- [oh-my-zsh](https://ohmyz.sh/) - `zsh` management, themes, plugins, etc.
+- [htop](https://htop.dev/) - Interactive process viewer
+- [eza](https://the.exa.website/) - `ls` replacement, oooo fancy gradient colors
 
 ## Karabiner-Elements
 
@@ -49,17 +43,5 @@ application on your local machine is _soooo_ worth it and pretty quick to learn.
 ## Raycast
 
 [Raycast](https://raycast.com) - Improved Spotlight search & much more for MacOS.
-The built-in clipboard history, file search, and calculator are very handy.
-
-## PowerShell
-
-Not too sure how much of this works anymore.
-
-- [Scoop](https://scoop.sh/) - CLI installer.
-- [Git for Windows](https://gitforwindows.org/)
-- [Oh My Posh](https://ohmyposh.dev/) - Prompt theme engine.
-- [Terminal Icons](https://github.com/devblackops/Terminal-Icons) - Folder and
-  file icons.
-- [PSReadLine](https://docs.microsoft.com/en-us/powershell/module/psreadline/) -
-  Cmdlets for customizing the editing environment, used for autocompletion.
-- [z](https://www.powershellgallery.com/packages/z) - Git directory jumping.
+The built-in clipboard history, file search, and calculator are quite handy. LLM
+integrations with many models from Anthropic, Google, OpenAI, and many others
