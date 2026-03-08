@@ -5,18 +5,17 @@ if [[ $# -eq 1 ]]; then
 else
     selected=$(find \
         ~ \
+        ~/.config/ \
+        ~/.config/nvim \
+        ~/.local/bin/ \
+        ~/.claude/ \
         ~/Developments \
         ~/Developments/tutorials/ \
         ~/Developments/progrums/ \
         ~/Developments/progrums/claude/ \
-        ~/.config/ \
-        ~/.config/nvim \
         ~/Developments/work/ \
         ~/Developments/work/ck/ \
         ~/Developments/work/ck/programmin/ \
-        ~/Developments/work/ck/programmin/ \
-        ~/.local/bin/ \
-        ~/.claude/ \
         -mindepth 1 -maxdepth 1 -type d | fzf)
 fi
 
