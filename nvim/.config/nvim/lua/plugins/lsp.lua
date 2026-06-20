@@ -97,6 +97,7 @@ return {
         },
         html = {},
         harper_ls = {
+          enabled = false,
           filetypes = { "markdown", "text", "gitcommit" },
         },
         yamlls = {
