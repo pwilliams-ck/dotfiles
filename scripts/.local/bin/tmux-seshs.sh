@@ -9,10 +9,12 @@ else
         ~/.config/nvim \
         ~/.local/bin/ \
         ~/.claude/ \
+        ~/.claude/plans/ \
         ~/Developments \
         ~/Developments/tutorials/ \
         ~/Developments/progrums/ \
         ~/Developments/progrums/claude/ \
+        ~/Developments/progrums/godot/ \
         ~/Developments/work/ \
         ~/Developments/work/ck/ \
         ~/Developments/work/ck/programmin/ \
