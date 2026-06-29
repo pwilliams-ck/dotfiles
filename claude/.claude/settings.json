@@ -1,0 +1,152 @@
+{
+  "disableClaudeAiConnectors": true,
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read(~/Notes/work-todo.md)",
+      "mcp__clickup__clickup_get_workspace_hierarchy",
+      "mcp__clickup__clickup_get_workspace_members",
+      "mcp__clickup__clickup_get_task",
+      "mcp__clickup__clickup_get_task_comments",
+      "mcp__clickup__clickup_get_threaded_comments",
+      "mcp__clickup__clickup_get_custom_fields",
+      "mcp__clickup__clickup_get_list",
+      "mcp__clickup__clickup_get_folder",
+      "mcp__clickup__clickup_get_document_pages",
+      "mcp__clickup__clickup_list_document_pages",
+      "mcp__clickup__clickup_get_time_entries",
+      "mcp__clickup__clickup_get_current_time_entry",
+      "mcp__clickup__clickup_get_task_time_in_status",
+      "mcp__clickup__clickup_get_bulk_tasks_time_in_status",
+      "mcp__clickup__clickup_get_chat_channels",
+      "mcp__clickup__clickup_get_chat_channel_messages",
+      "mcp__clickup__clickup_get_chat_message_replies",
+      "mcp__clickup__clickup_filter_tasks",
+      "mcp__clickup__clickup_search",
+      "mcp__clickup__clickup_find_member_by_name",
+      "mcp__clickup__clickup_resolve_assignees",
+      "mcp__clickup__clickup_search_reminders"
+    ],
+    "deny": [
+      "Bash(git merge:*)",
+      "Bash(git merge)",
+      "Bash(git rebase:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -fr:*)",
+      "Bash(dd:*)",
+      "Bash(shred:*)"
+    ],
+    "ask": [
+      "Agent",
+      "Bash(gh:*)",
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(truncate:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(sed -i:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git mv:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(git reset:*)",
+      "Bash(git branch -d:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git tag:*)",
+      "Bash(git stash push:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git stash drop:*)",
+      "Bash(git stash apply:*)",
+      "Bash(git stash clear:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git revert:*)",
+      "Bash(git clean:*)",
+      "Bash(git apply:*)",
+      "Bash(git am:*)",
+      "Bash(git config set:*)",
+      "Bash(git config unset:*)",
+      "Bash(git submodule:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git worktree remove:*)"
+    ],
+    "defaultMode": "default"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/scripts/rename-plans.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay /System/Library/Sounds/bottle.aiff"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/scripts/bash-write-gate.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"REMINDER: Be concise. Shortest response that fully answers. No preamble, no recap, no restated question. This covers ALL written output, not just chat: documentation, git commit messages, and PR descriptions are concise too. Plans terse (bullets/steps). Tool preambles: one short line or nothing.\"}}'"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "feature-dev@claude-code-plugins": true,
+    "gopls-lsp@claude-plugins-official": true
+  },
+  "effortLevel": "xhigh",
+  "tui": "fullscreen",
+  "editorMode": "vim",
+  "verbose": false,
+  "preferredNotifChannel": "auto",
+  "switchModelsOnFlag": true,
+  "autoScrollEnabled": true,
+  "wheelScrollAccelerationEnabled": false,
+  "fileCheckpointingEnabled": true,
+  "remoteControlAtStartup": false,
+  "useAutoModeDuringPlan": true,
+  "voiceEnabled": true
+}

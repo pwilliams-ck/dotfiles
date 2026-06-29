@@ -1,19 +1,56 @@
 # Parker's Dotfiles
 
-Back up your current config before running the command below. Then, clone to \
-your home directory with this.
-
-```bash
-git clone https://github.com/pwilliams-ck/dotfiles ~/.config/
-```
+Personal macOS config, deployed with [GNU Stow](https://www.gnu.org/software/stow/).
+Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`) is a
+Stow package; `stow <pkg>` symlinks it into `$HOME`. The deployed files are symlinks
+back into the repo, so editing here edits the live config.
 
 ## Table of Contents
 
+- [New machine setup](#new-machine-setup)
 - [Terminal](#terminal)
   - [IDE](#ide)
   - [Shell](#shell)
-- [Karabiner-Elements](karabiner-elements)
+- [Karabiner-Elements](#karabiner-elements)
 - [Raycast](#raycast)
+
+## New machine setup
+
+```bash
+# 1. Prerequisites (jq is required by the claude hooks + statusline)
+brew install stow jq
+
+# 2. Clone (examples assume ~/dotfiles; Stow makes symlinks relative to wherever you clone)
+git clone https://github.com/pwilliams-ck/dotfiles ~/dotfiles
+cd ~/dotfiles
+
+# 3. Deploy packages
+stow nvim tmux scripts markdownlint
+```
+
+`stow -D <pkg>` un-deploys (removes the symlinks).
+
+### Claude Code
+
+The CLI is **not** in this repo — install it separately. And unlike nvim/tmux,
+Claude Code keeps its runtime state (`projects/`, `sessions/`, `history.jsonl`,
+caches) **inside** `~/.claude`, so it must already exist as a real directory
+before stowing — otherwise Stow symlinks the whole `~/.claude` into the repo and
+Claude writes session state into git.
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash   # or: brew install --cask claude-code
+claude                                            # log in; creates ~/.claude as a real dir
+# quit Claude, then:
+cd ~/dotfiles && stow claude
+```
+
+Not carried by the repo — set up separately on each machine:
+
+- **Plugins** flagged in `settings.json` (`feature-dev`, `gopls-lsp`) — install via the plugin marketplace.
+- **MCP servers** (e.g. clickup) and their auth — machine-local (`~/.claude.json`); reconfigure.
+- `~/.claude/settings.local.json` and `hooks/logs/` — machine-local, intentionally untracked.
+- The hook scripts were vendored from the archived `review-hooks` repo; edit them under `claude/.claude/hooks/scripts/`.
 
 ## Terminal
 

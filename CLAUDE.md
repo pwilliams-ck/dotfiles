@@ -22,6 +22,7 @@ stow nvim         # symlinks nvim/.config/nvim       -> ~/.config/nvim
 stow tmux         # symlinks tmux/.config/tmux       -> ~/.config/tmux
 stow scripts      # symlinks scripts/.local/bin/*    -> ~/.local/bin/
 stow markdownlint # symlinks markdownlint/.markdownlint.json -> ~/.markdownlint.json
+stow claude       # symlinks claude/.claude/*        -> ~/.claude/
 stow -D nvim      # un-deploy (remove symlinks)
 ```
 
@@ -61,3 +62,14 @@ Custom shell tools deployed to `~/.local/bin`:
 - `cht.sh` — **vendored third-party** cheat.sh shell client (has its own `update`/`version` self-management). Don't hand-edit; treat as upstream.
 
 The `claude` file (untracked) is **not** part of these dotfiles. It's a symlink the Claude Code installer wrote to `~/.local/bin/claude` (pointing at `~/.local/share/claude/versions/<ver>`); because `~/.local/bin` is a folded Stow symlink to this directory, that write landed inside the repo. It's machine- and version-specific — don't commit it (gitignore it, or unfold the dir so `~/.local/bin` holds per-file symlinks).
+
+## Claude Code (`claude/.claude/`)
+
+Global Claude Code config. `~/.claude/` is a real directory full of machine state, so Stow **folds**: only the items below become symlinks; everything else there (`projects/`, `sessions/`, `history.jsonl`, caches, `plugins/`, `settings.local.json`, and `hooks/logs/` + `hooks/.rename-plans-since`) stays real and untracked.
+
+Stowed:
+- `CLAUDE.md` — global cross-project instructions; `settings.json` — permissions, hooks wiring, status line, plugins; `keybindings.json`; `statusline-command.sh`; `extra-system-prompt.txt`.
+- `commands/` — custom slash commands. `skills/` — `pm` and `slice`.
+- `hooks/scripts/` — `bash-write-gate.sh` (PreToolUse(Bash) gate), `rename-plans.sh` (Stop hook), and their `common.sh` lib. **Vendored** from the now-archived `review-hooks` repo and wired via the `hooks` block in `settings.json`; edit here = live. The dormant scripts and `patterns/` from that repo were intentionally left behind.
+
+`settings.local.json` is machine-local and deliberately **not** stowed.
