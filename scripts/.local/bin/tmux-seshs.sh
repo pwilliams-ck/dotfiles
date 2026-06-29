@@ -3,11 +3,9 @@
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
-    selected=$(find \
+    result=$(find \
+        /Users/ \
         ~ \
-        ~/.config/ \
-        ~/.config/nvim \
-        ~/.local/bin/ \
         ~/.claude/ \
         ~/.claude/plans/ \
         ~/Developments \
@@ -18,7 +16,18 @@ else
         ~/Developments/work/ \
         ~/Developments/work/ck/ \
         ~/Developments/work/ck/programmin/ \
-        -mindepth 1 -maxdepth 1 -type d | fzf)
+        -mindepth 1 -maxdepth 1 -type d | fzf --print-query)
+    status=$?
+    query=$(head -1 <<<"$result")
+    match=$(tail -n +2 <<<"$result")
+
+    if [[ $status -eq 130 ]]; then
+        exit 0 # Esc / Ctrl-C aborts
+    elif [[ -z $query ]]; then
+        selected=$HOME # Enter on an empty prompt
+    else
+        selected=$match
+    fi
 fi
 
 if [[ -z $selected ]]; then
