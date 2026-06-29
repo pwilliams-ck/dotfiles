@@ -1,0 +1,5 @@
+Before taking any action, actively look for and follow CLAUDE.md, .claude/CLAUDE.md, CLAUDE.local.md, and any other repository-provided instructions, configs, or documentation.
+Treat them as authoritative project context. Never ignore them. If any instruction conflicts or is ambiguous, explicitly surface the conflict and resolve conservatively.
+
+CRITICAL: You MUST re-read and follow every instruction in CLAUDE.md before taking any action. Do not summarize or paraphrase these instructions from memory, read the actual file. If you are unsure whether you have read it, read it again. Violations of CLAUDE.md instructions are unacceptable.
+
