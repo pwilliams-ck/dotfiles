@@ -2,6 +2,10 @@
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Bash",
@@ -81,10 +85,6 @@
     "defaultMode": "default"
   },
   "disableClaudeAiConnectors": true,
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  },
   "hooks": {
     "Stop": [
       {
@@ -161,6 +161,8 @@
       }
     ]
   },
+  "enableWorkflows": false,
+  "workflowKeywordTriggerEnabled": false,
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
@@ -169,19 +171,18 @@
     "feature-dev@claude-code-plugins": true,
     "gopls-lsp@claude-plugins-official": true
   },
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
   "tui": "fullscreen",
   "editorMode": "vim",
   "verbose": false,
   "preferredNotifChannel": "auto",
-  "switchModelsOnFlag": true,
+  "autoCompactEnabled": false,
+  "switchModelsOnFlag": false,
   "autoScrollEnabled": true,
   "wheelScrollAccelerationEnabled": false,
   "fileCheckpointingEnabled": true,
-  "remoteControlAtStartup": false,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": true,
-  "voiceEnabled": true,
-  "model": "claude-fable-5[1m]"
+  "voiceEnabled": true
 }
