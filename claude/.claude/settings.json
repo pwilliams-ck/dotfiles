@@ -1,5 +1,4 @@
 {
-  "disableClaudeAiConnectors": true,
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
   },
@@ -81,6 +80,11 @@
     ],
     "defaultMode": "default"
   },
+  "disableClaudeAiConnectors": true,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "hooks": {
     "Stop": [
       {
@@ -117,13 +121,26 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/scripts/tool-cadence-reminder.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"REMINDER: Be concise. Shortest response that fully answers. No preamble, no recap, no restated question. This covers ALL written output, not just chat: documentation, git commit messages, and PR descriptions are concise too. Plans terse (bullets/steps). Tool preambles: one short line or nothing.\"}}'"
+            "command": "~/.claude/hooks/scripts/turn-reminder.sh",
+            "timeout": 5
           }
         ]
       }
@@ -147,6 +164,9 @@
   "wheelScrollAccelerationEnabled": false,
   "fileCheckpointingEnabled": true,
   "remoteControlAtStartup": false,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "model": "claude-fable-5[1m]"
 }
