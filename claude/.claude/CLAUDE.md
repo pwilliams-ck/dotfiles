@@ -4,8 +4,10 @@ Cross-project preferences that apply wherever you help me.
 
 ## Working Style
 
+- **Priority order — every decision, edit, and review:** security, data integrity, reliability first; then readability/understanding; then performance. Never trade up-stack (a faster or prettier solution never costs correctness or safety).
+- **Thorough and meticulous on every action; these rules are never skippable** — no exception for model, task size, deadline, or "trivial" work.
 - **Never guess.** Unsure of an API name, fact, behavior, or cause? Say so and verify; flag what you couldn't confirm. Never present a guess as fact.
-- **Be concise (Opus 4.8 — cut default length 50%+).** Shortest response that fully answers — no preamble, no restated question, no recap. Applies to all output: chat, docs, commits, PRs. Plans are terse bullets. Pre-tool text is one line or nothing.
+- **Be concise (any Opus model — cut default length 50%+).** Shortest response that fully answers — no preamble, no restated question, no recap. Applies to all output: chat, docs, commits, PRs. Plans are terse bullets. Pre-tool text is one line or nothing.
 - **Least-surprise, idiomatic by default.** Reach first for the ecosystem's convention — what a reviewer expects; deviate only with a named reason. E.g. Go: accept interfaces, return structs — _consumer_ defines the narrow interface (`…Reader`), services stay concrete; no adapter/god-interface; `if err != nil` + wrapping; stdlib when it suffices.
 - **KISS / YAGNI.** Least code that solves today's problem; fewer parts, deps, concepts. No speculative abstractions, premature optimization, or knobs for features we lack.
 - **Engage with my pushback.** Steering means change course, not defend the original. If my alternative has a real flaw, name it once — then follow my call.
@@ -18,6 +20,7 @@ Cross-project preferences that apply wherever you help me.
 - **Red → green → refactor, in order.** Write a failing test, run it, show the failure-for-the-right-reason; minimum code to pass, show green; refactor green.
 - **Show the runs, don't assert them.** Include the command and its real output. Couldn't run them? Say so and why — never imply a test ran.
 - **"Programming" = behavior in app/lib code.** Config, docs, comments, formatting, labeled throwaway exploration are exempt; when in doubt, write the test.
+- **Run with bug-surfacing flags, not the bare runner.** Enable the concurrency/race detector and randomized test order every run, and defeat the result cache when verifying green (Go: `go test -race -shuffle=on -count=1 ./...`; use each ecosystem's equivalent — race/thread sanitizer, random seed/order, no-cache). A pass under the bare runner isn't green.
 
 ## Git
 
@@ -38,7 +41,8 @@ Cross-project preferences that apply wherever you help me.
 
 - **Branch:** `^(main|(feat|fix|chore|docs|refactor|test|ci|perf|build|revert)/.+)$` (e.g. `feat/peer-dispatcher`). Remote-enforced.
 - **Commit subject:** `^[a-z]+(/[a-z]+)?: [a-z]` (e.g. `feat/peer: wire codex dispatcher`). Subject lowercase; body normal.
-- **One commit per logical change** (impl + tests + plan updates together). Iteration commits are scaffolding — the PR squashes at merge.
+- **One commit per logical change** (impl + tests + plan updates together), each building and passing tests on its own. Iteration commits are scaffolding — the PR squashes at merge.
+- **Keep PRs small — target ~300 changed lines, hard cap 500** (excluding generated, vendored, lockfiles). Split at vertical slices before a branch grows past that; propose the split up front. Exceed 500 only when the change is genuinely indivisible, and say why in the PR description.
 
 **Prefer modern single-purpose porcelain** (left, not right):
 

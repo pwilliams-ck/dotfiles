@@ -20,6 +20,12 @@ cwd=$(echo "$input"  | jq -r '.cwd // ""'); [[ -z "$cwd" ]] && cwd="$(pwd)"
 emit(){ jq -n --arg d "$1" --arg r "$2" \
   '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}'; exit 0; }
 
+# `git -C <path>` targets that repo, not the shell cwd — resolve branch checks
+# against it. (No \b in the sed — macOS sed -E lacks it.)
+gitdir="$cwd"
+c_arg=$(echo "$cmd" | sed -nE 's/.*git[[:space:]]+-C[[:space:]]+([^[:space:]]+).*/\1/p')
+[[ -n "$c_arg" ]] && gitdir="${c_arg/#\~/$HOME}"
+
 # 1) DENY backstop — robust to `git -C x push`, double-spacing, etc.
 # merge / rebase are never run by the agent.
 echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(merge|rebase)\b' \
@@ -39,7 +45,7 @@ if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:sp
     && emit deny "pushing main/master is human-only (merge deploys dev)."
   # No explicit branch ref -> current branch is the target. Deny on
   # main/master, or when the branch is undeterminable (detached/error).
-  cur=$(git -C "$cwd" branch --show-current 2>/dev/null || true)
+  cur=$(git -C "$gitdir" branch --show-current 2>/dev/null || true)
   case "$cur" in
     main|master|"") emit deny "push from main/master (or an undetermined branch) is human-only." ;;
   esac
@@ -50,7 +56,7 @@ fi
 # branch is undeterminable (not a repo, detached, cd elsewhere in a compound
 # command) fall through to the static `git commit` ask instead of denying.
 if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+commit\b'; then
-  cur=$(git -C "$cwd" branch --show-current 2>/dev/null || true)
+  cur=$(git -C "$gitdir" branch --show-current 2>/dev/null || true)
   case "$cur" in
     main|master) emit deny "commit on $cur is blocked — create a feature branch first: git switch -c <type>/<kebab-name>." ;;
   esac
@@ -66,6 +72,17 @@ echo "$cmd" | grep -Eq '\bgit\b.*\breset\b.*--hard'          && emit deny "git r
 echo "$cmd" | grep -Eq '\bgit\b.*\bclean\b.*-[a-zA-Z]*f'     && emit deny "git clean -f deletes untracked files — run it yourself."
 echo "$cmd" | grep -Eq '\brm\b[^|;&]*-[a-zA-Z]*(rf|fr)'      && emit deny "rm -rf is not allowed."
 echo "$cmd" | grep -Eq '\bshred\b'                           && emit deny "shred irreversibly destroys files — run it yourself."
+
+# ASK backstop: write git anywhere in the command. The static settings.json
+# ask rules are PREFIX matches, so `git -C x commit`, `VAR=1 git add`, and
+# `cd x && git commit` all slip past them to the broad Bash allow. Catch the
+# write subcommand positionally (after `git [opts]`) and force the prompt.
+# Runs after every deny backstop so denies keep winning; stash list/show
+# stays read-only (allowed below).
+if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(add|commit|switch|checkout|restore|pull|reset|cherry-pick|revert|rm|mv|am|apply|submodule|worktree|stash)\b' \
+   && ! echo "$cmd" | grep -Eq '\bstash[[:space:]]+(list|show)\b'; then
+  emit ask "Write git command — needs per-command approval."
+fi
 
 # simplicity guard: only auto-ALLOW single simple statements
 is_simple=1

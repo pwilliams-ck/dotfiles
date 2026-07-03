@@ -61,4 +61,6 @@ Discover the project's test and build/lint commands first (a Makefile,
 
 Echo a one-line pointer to the handoff (file or chat) and **do not** start the
 next task. After any PR is opened, note its number so it can be folded into the
-next handoff.
+next handoff. Recommend the user run `/clear` before the next `/slice` — the
+handoff note is written for zero context on purpose; a fresh context implements
+and reviews better than a compacted one carrying this slice's assumptions.
