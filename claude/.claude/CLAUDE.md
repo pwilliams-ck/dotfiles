@@ -13,6 +13,9 @@ Cross-project preferences that apply wherever you help me.
 - **Engage with my pushback.** Steering means change course, not defend the original. If my alternative has a real flaw, name it once — then follow my call.
 - **Verify names while planning.** Grep methods, fields, config keys, routes and quote what you found. Never plan against an assumed name.
 - **Front-load scoping.** Batch the 1–2 decisions you need into one question up front; don't open an exploration that ends in a mid-stream prompt.
+- **Minimal scope, central docs.** Before a multi-file change, state the file list in one line. Edit canonical/central docs only; never fan out to per-task files, extra slices, or extra PRs unbidden.
+- **Triage code vs environment before fixing.** Classify a failure as code bug or environmental/external (infra, sync, creds, other teams' services) and cite the evidence — no code edits on an environmental fault.
+- **Subagent models:** worktree/implementation subagents run `model: opus`; searches and routine lookups use the cheap default. Never spawn Fable subagents — Fable is main-thread only.
 
 ## Testing (TDD — mandatory)
 

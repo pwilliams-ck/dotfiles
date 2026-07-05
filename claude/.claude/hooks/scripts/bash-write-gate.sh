@@ -20,11 +20,24 @@ cwd=$(echo "$input"  | jq -r '.cwd // ""'); [[ -z "$cwd" ]] && cwd="$(pwd)"
 emit(){ jq -n --arg d "$1" --arg r "$2" \
   '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}'; exit 0; }
 
-# `git -C <path>` targets that repo, not the shell cwd — resolve branch checks
-# against it. (No \b in the sed — macOS sed -E lacks it.)
+# Branch checks must run where the git command will actually run, not the
+# session cwd — `cd <repo> && git commit` on a feature branch was being denied
+# as "commit on main" because the check ran against the session's repo.
 gitdir="$cwd"
+cd_arg=$(echo "$cmd" | sed -nE 's/^[[:space:]]*cd[[:space:]]+([^;&|]+)(&&|;).*/\1/p' \
+         | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\'']//; s/["'\'']$//')
+if [[ -n "$cd_arg" ]]; then
+  cd_arg="${cd_arg/#\~/$HOME}"
+  [[ "$cd_arg" != /* ]] && cd_arg="$cwd/$cd_arg"
+  gitdir="$cd_arg"
+fi
+# `git -C <path>` overrides. (No \b in the sed — macOS sed -E lacks it.)
 c_arg=$(echo "$cmd" | sed -nE 's/.*git[[:space:]]+-C[[:space:]]+([^[:space:]]+).*/\1/p')
-[[ -n "$c_arg" ]] && gitdir="${c_arg/#\~/$HOME}"
+if [[ -n "$c_arg" ]]; then
+  c_arg="${c_arg/#\~/$HOME}"
+  [[ "$c_arg" != /* ]] && c_arg="$gitdir/$c_arg"
+  gitdir="$c_arg"
+fi
 
 # 1) DENY backstop — robust to `git -C x push`, double-spacing, etc.
 # merge / rebase are never run by the agent.
@@ -39,9 +52,13 @@ echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space
 if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+push\b'; then
   echo "$cmd" | grep -Eq '(--force-with-lease|--force|[[:space:]]-[a-zA-Z]*f)\b' \
     && emit deny "force-push is never auto-run — do it yourself."
+  # A leading '+' on a refspec (e.g. `push origin +main`) is a force-push too,
+  # and slips past --force/-f detection — treat it as force.
+  echo "$cmd" | grep -Eq '[[:space:]]\+[^[:space:]]' \
+    && emit deny "force-push (+refspec) is never auto-run — do it yourself."
   echo "$cmd" | grep -Eq '(--tags|--follow-tags)\b' \
     && emit deny "pushing tags is the prod deploy trigger — human-only."
-  echo "$cmd" | grep -Eq '(^|[[:space:]]|:|/)(main|master)([[:space:]]|:|$)' \
+  echo "$cmd" | grep -Eq '(^|[[:space:]]|:|/|\+)(main|master)([[:space:]]|:|$)' \
     && emit deny "pushing main/master is human-only (merge deploys dev)."
   # No explicit branch ref -> current branch is the target. Deny on
   # main/master, or when the branch is undeterminable (detached/error).
@@ -79,7 +96,7 @@ echo "$cmd" | grep -Eq '\bshred\b'                           && emit deny "shred
 # write subcommand positionally (after `git [opts]`) and force the prompt.
 # Runs after every deny backstop so denies keep winning; stash list/show
 # stays read-only (allowed below).
-if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(add|commit|switch|checkout|restore|pull|reset|cherry-pick|revert|rm|mv|am|apply|submodule|worktree|stash)\b' \
+if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(add|commit|push|switch|checkout|restore|pull|reset|cherry-pick|revert|rm|mv|am|apply|submodule|worktree|stash)\b' \
    && ! echo "$cmd" | grep -Eq '\bstash[[:space:]]+(list|show)\b'; then
   emit ask "Write git command — needs per-command approval."
 fi
