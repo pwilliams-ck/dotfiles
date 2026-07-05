@@ -54,7 +54,10 @@ key=$(printf '%s' "$repo" | shasum -a 256 | awk '{print $1}')
 state="$HOME/.claude/hooks/state"; mkdir -p "$state"
 report="$state/review-$key.md"
 sentinel="$state/review-ok-$key"
+live="/tmp/claude-review-$key.log"   # human-readable live progress, tailable from another terminal
 rm -f "$sentinel"   # a new review run invalidates any prior approval
+: > "$live"         # truncate: each run starts a fresh live log
+echo "review-staged: live log: $live" >&2
 
 prompt='You are an independent, adversarial code reviewer with zero attachment
 to the change under review. The author is a capable model whose known failure
@@ -144,7 +147,8 @@ if command -v jq >/dev/null 2>&1; then
               "  ✎ \(.text | gsub("\\s+";" ") | .[0:100])\n"
             else empty end)
         elif .type=="result" then "◀ review complete\n"
-        else empty end' >&2
+        else empty end' \
+    | tee -a "$live" >&2
   cstat=${PIPESTATUS[0]}
   set -e
   [[ $cstat -eq 0 ]] || { echo "review-staged: claude exited $cstat" >&2; exit "$cstat"; }
