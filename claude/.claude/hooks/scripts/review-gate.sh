@@ -56,7 +56,17 @@ empty_hash=$(printf '' | shasum -a 256 | awk '{print $1}')
 
 repo_key=$(printf '%s' "$repo" | shasum -a 256 | awk '{print $1}')
 sentinel="$HOOKS_DIR/state/review-ok-$repo_key"
+report="$HOOKS_DIR/state/review-$repo_key.md"
+live="/tmp/claude-review-$repo_key.log"
 
 [[ -f "$sentinel" && "$(<"$sentinel")" == "$staged_hash" ]] && exit 0  # reviewed -> static ask
 
-deny "review-gate: staged diff has no passing fresh-context review. Run: ~/.claude/hooks/scripts/review-staged.sh $repo  (headless claude -p reviewer — give the Bash call a 600000ms timeout). Fix its findings, restage, rerun until PASS; the script writes the approval sentinel itself. Never write $sentinel yourself. Then retry the commit."
+last_report=""
+[[ -f "$report" ]] && last_report="
+
+--- last review report ($report) ---
+$(<"$report")
+--- end report ---"
+
+deny "review-gate: staged diff has no passing fresh-context review. Run ~/.claude/hooks/scripts/review-staged.sh $repo in the FOREGROUND (do NOT background it; set a generous Bash timeout, e.g. 600000ms — the review takes minutes and blocks until done). Then read $report, fix any findings, restage, and rerun until it writes the approval sentinel (PASS). Never write $sentinel yourself. Then retry the commit.
+Live progress is logged to $live — tail -f $live from a SEPARATE terminal to watch while the foreground run blocks.${last_report}"
