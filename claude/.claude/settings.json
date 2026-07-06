@@ -84,7 +84,6 @@
     ],
     "defaultMode": "default"
   },
-  "model": "claude-fable-5[1m]",
   "disableClaudeAiConnectors": true,
   "hooks": {
     "Stop": [
@@ -123,6 +122,11 @@
             "type": "command",
             "command": "~/.claude/hooks/scripts/review-gate.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/scripts/pr-size-gate.sh",
+            "timeout": 10
           }
         ]
       },
@@ -145,6 +149,16 @@
             "type": "command",
             "command": "~/.claude/hooks/scripts/tool-cadence-reminder.sh",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/scripts/branch-size-warn.sh",
+            "timeout": 10
           }
         ]
       }
@@ -172,7 +186,7 @@
     "feature-dev@claude-code-plugins": true,
     "gopls-lsp@claude-plugins-official": true
   },
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "tui": "fullscreen",
   "editorMode": "vim",
   "verbose": false,
@@ -185,5 +199,6 @@
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "model": "claude-fable-5[1m]"
 }

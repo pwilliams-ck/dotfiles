@@ -45,7 +45,7 @@ Cross-project preferences that apply wherever you help me.
 - **Branch:** `^(main|(feat|fix|chore|docs|refactor|test|ci|perf|build|revert)/.+)$` (e.g. `feat/peer-dispatcher`). Remote-enforced.
 - **Commit subject:** `^[a-z]+(/[a-z]+)?: [a-z]` (e.g. `feat/peer: wire codex dispatcher`). Subject lowercase; body normal.
 - **One commit per logical change** (impl + tests + plan updates together), each building and passing tests on its own. Iteration commits are scaffolding — the PR squashes at merge.
-- **Keep PRs small — target ~300 changed lines, hard cap 500** (excluding generated, vendored, lockfiles). Split at vertical slices before a branch grows past that; propose the split up front. Exceed 500 only when the change is genuinely indivisible, and say why in the PR description.
+- **Keep PRs small — ~400 changed lines max** (excluding generated, vendored, lockfiles, docs). Split at vertical slices before a branch grows past that; propose the split up front. The `pr-size-gate` hook enforces this at `gh pr create`; exceed it only under my explicit direction — never self-authorize a bypass.
 
 **Prefer modern single-purpose porcelain** (left, not right):
 
