@@ -101,6 +101,12 @@ if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:sp
   emit ask "Write git command — needs per-command approval."
 fi
 
+# gh backstop: the static `Bash(gh:*)` ask is a prefix match, so compound
+# commands like `cd repo && gh pr create` slip past it. Catch `gh` anywhere.
+if echo "$cmd" | grep -Eq '\bgh\b'; then
+  emit ask "gh CLI command — needs per-command approval."
+fi
+
 # simplicity guard: only auto-ALLOW single simple statements
 is_simple=1
 echo "$cmd" | grep -Eq '&&|\|\||[;|]|\$\(|`|>\(|<\(' && is_simple=0

@@ -4,11 +4,13 @@ Cross-project preferences that apply wherever you help me.
 
 ## Working Style
 
+- **Repo rules win.** When a project's CLAUDE.md/AGENTS.md conflicts with this file, follow the repo — its conventions, commit style, testing rules, and git policy override these defaults. Sole exception: my 🔴 git non-negotiables below are a floor; a repo may tighten them, never loosen them.
 - **Priority order — every decision, edit, and review:** security, data integrity, reliability first; then readability/understanding; then performance. Never trade up-stack (a faster or prettier solution never costs correctness or safety).
 - **Thorough and meticulous on every action; these rules are never skippable** — no exception for model, task size, deadline, or "trivial" work.
 - **Never guess.** Unsure of an API name, fact, behavior, or cause? Say so and verify; flag what you couldn't confirm. Never present a guess as fact.
-- **Be concise (any Opus model — cut default length 50%+).** Shortest response that fully answers — no preamble, no restated question, no recap. Applies to all output: chat, docs, commits, PRs. Plans are terse bullets. Pre-tool text is one line or nothing.
+- **Be concise (any Opus model — cut default length 80%+).** Shortest response that fully answers — no preamble, no restated question, no recap. Applies to all output: chat, docs, commits, PRs. Plans are terse bullets. Pre-tool text is one line or nothing.
 - **Least-surprise, idiomatic by default.** Reach first for the ecosystem's convention — what a reviewer expects; deviate only with a named reason. E.g. Go: accept interfaces, return structs — _consumer_ defines the narrow interface (`…Reader`), services stay concrete; no adapter/god-interface; `if err != nil` + wrapping; stdlib when it suffices.
+- **Go services: Mat Ryer patterns** ("HTTP services after 13 years"). Tiny `main` that only calls `run(ctx, args…) error`; `newServer(logger, config, store, …)` wires all routes + middleware in one `routes.go`; handlers are closures returning `http.Handler` with deps as arguments; no god/kitchen-sink struct — pass each dependency explicitly; tests table-driven.
 - **KISS / YAGNI.** Least code that solves today's problem; fewer parts, deps, concepts. No speculative abstractions, premature optimization, or knobs for features we lack.
 - **Engage with my pushback.** Steering means change course, not defend the original. If my alternative has a real flaw, name it once — then follow my call.
 - **Verify names while planning.** Grep methods, fields, config keys, routes and quote what you found. Never plan against an assumed name.
@@ -16,6 +18,16 @@ Cross-project preferences that apply wherever you help me.
 - **Minimal scope, central docs.** Before a multi-file change, state the file list in one line. Edit canonical/central docs only; never fan out to per-task files, extra slices, or extra PRs unbidden.
 - **Triage code vs environment before fixing.** Classify a failure as code bug or environmental/external (infra, sync, creds, other teams' services) and cite the evidence — no code edits on an environmental fault.
 - **Subagent models:** worktree/implementation subagents run `model: opus`; searches and routine lookups use the cheap default. Never spawn Fable subagents — Fable is main-thread only.
+
+## Team repos (CloudKey core — `~/Developments/work/ck/programmin/core`)
+
+I'm dev #2 on a small team; the lead owns the codebase and every decision, and dev #3 is skilled but greener. Goal: be a strong contributor and learn the lead's craft.
+
+- **All decisions go through the lead — zero new dependencies, ever.** No new deps, tooling, lint/format config, or convention changes, and no scaffolding around their absence. If one seems genuinely needed, don't implement: draft a short proposal (problem, option, trade-off, concrete example) for me to bring to him.
+- **Extend his patterns, don't import mine.** The hand-rolled router, store, ACME client, and OIDC lib on Node built-ins are deliberate. New code follows the existing shapes (`src/routes/`, `src/domain/entities/`, `src/integrations/<category>/` contracts, `StoreError` codes, sibling `test/` dirs with `node:test`). Read the relevant `docs/*.md` before touching a subsystem.
+- **Single-writer invariant is sacred:** all domain writes go through the supervisor's IPC write path; child processes hold read-only DB connections. Never open a second writer.
+- **Git in this repo: stage only.** Never commit, push, or open a PR unless he explicitly asks — and if he does, match his commit style (terse, lowercase, topic-prefixed), not my `type/scope:` convention.
+- **Teach as we go.** When we work in one of his subsystems, briefly explain the design intent behind it so I build the same instincts. When he says no or corrects course, treat his reasoning as the deliverable — capture it in memory so it shapes future proposals.
 
 ## Testing (TDD — mandatory)
 

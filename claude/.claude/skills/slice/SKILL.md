@@ -59,8 +59,10 @@ Discover the project's test and build/lint commands first (a Makefile,
 
 ## 5. Handoff
 
-Echo a one-line pointer to the handoff (file or chat) and **do not** start the
-next task. After any PR is opened, note its number so it can be folded into the
-next handoff. Recommend the user run `/clear` before the next `/slice` — the
-handoff note is written for zero context on purpose; a fresh context implements
-and reviews better than a compacted one carrying this slice's assumptions.
+Invoke the `handoff` skill (argument `merged` if the PR merged this session,
+none otherwise) — it refreshes the handoff file and prints the paste-ready
+prompt for the next session. **Do not** start the next task. After any PR is
+opened, note its number so the handoff folds it in. Recommend the user run
+`/clear` before the next `/slice` — the handoff is written for zero context on
+purpose; a fresh context implements and reviews better than a compacted one
+carrying this slice's assumptions.

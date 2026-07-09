@@ -5,15 +5,23 @@
 input=$(cat)
 
 # --- data from JSON (single jq call for efficiency and null-safety) ---
-# Use tab-delimited output so paths with spaces are handled correctly.
-IFS=$'\t' read -r cwd project_dir model used <<< "$(
+# Unit-separator delimited: unlike tab (whitespace IFS), \x1f preserves
+# empty fields, so a missing project_dir or percentage can't shift fields.
+IFS=$'\x1f' read -r cwd project_dir model used session_id <<< "$(
   echo "$input" | jq -r '[
     (.workspace.current_dir // .cwd // ""),
     (.workspace.project_dir // ""),
     (.model.display_name // ""),
-    (if .context_window.used_percentage == null then "" else (.context_window.used_percentage | tostring) end)
-  ] | @tsv'
+    (if .context_window.used_percentage == null then "" else (.context_window.used_percentage | tostring) end),
+    (.session_id // "")
+  ] | join("\u001f")'
 )"
+
+# --- persist used % for the ctx-handoff-nudge Stop hook ---
+# (Stop-hook input carries no context data; this file bridges the gap.)
+if [ -n "$session_id" ] && [ -n "$used" ]; then
+  printf '%s\n' "$used" > "$HOME/.claude/hooks/state/ctx-$session_id" 2>/dev/null || true
+fi
 
 # --- ANSI colours (dimmed-friendly 256-colour palette) ---
 YELLOW="\033[38;5;179m"

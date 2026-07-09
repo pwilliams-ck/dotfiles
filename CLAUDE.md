@@ -33,6 +33,7 @@ The deployed files in `$HOME` are symlinks back into this repo, so editing a fil
 Built on **LazyVim**. `lua/config/lazy.lua` is the entry point: it bootstraps `lazy.nvim`, loads LazyVim core, selects which `lazyvim.plugins.extras.*` modules are enabled (TypeScript, Python, Tailwind, ESLint, Prettier, etc.), then imports everything under `lua/plugins/`.
 
 Two places to make changes:
+
 - **`lua/config/`** — `options.lua`, `keymaps.lua`, `autocmds.lua`. Loaded automatically; these layer on top of LazyVim defaults rather than replacing them.
 - **`lua/plugins/*.lua`** — one file per concern (`lsp.lua`, `coding.lua`, `editor.lua`, `treesitter.lua`, `proto.lua`, …). Each returns a lazy.nvim spec table that is **merged** with LazyVim's. To extend a list option (e.g. `ensure_installed`), use the `opts = function(_, opts)` form and `vim.list_extend`; see `lsp.lua` and `proto.lua` for the pattern.
 
@@ -57,6 +58,7 @@ stylua nvim/.config/nvim
 ## Scripts (`scripts/.local/bin/`)
 
 Custom shell tools deployed to `~/.local/bin`:
+
 - `tmux-seshs.sh` — fzf-based tmux session switcher over a hardcoded list of project dirs.
 - `tmux-cht.sh` — opens a cheat.sh lookup in a tmux split, driven by `tmux/.config/tmux/.tmux-cht-languages` and `.tmux-cht-command`.
 - `cht.sh` — **vendored third-party** cheat.sh shell client (has its own `update`/`version` self-management). Don't hand-edit; treat as upstream.
@@ -68,6 +70,7 @@ The `claude` file (untracked) is **not** part of these dotfiles. It's a symlink 
 Global Claude Code config. `~/.claude/` is a real directory full of machine state, so Stow **folds**: only the items below become symlinks; everything else there (`projects/`, `sessions/`, `history.jsonl`, caches, `plugins/`, `settings.local.json`, and `hooks/logs/` + `hooks/.rename-plans-since`) stays real and untracked.
 
 Stowed:
+
 - `CLAUDE.md` — global cross-project instructions; `settings.json` — permissions, hooks wiring, status line, plugins; `keybindings.json`; `statusline-command.sh`; `extra-system-prompt.txt`.
 - `commands/` — custom slash commands. `skills/` — `pm` and `slice`.
 - `hooks/scripts/` — `bash-write-gate.sh` (PreToolUse(Bash) gate), `rename-plans.sh` (Stop hook), and their `common.sh` lib. **Vendored** from the now-archived `review-hooks` repo and wired via the `hooks` block in `settings.json`; edit here = live. The dormant scripts and `patterns/` from that repo were intentionally left behind.
