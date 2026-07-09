@@ -120,7 +120,9 @@ Before spawning agents, the head model:
 
 ## Phase 1 — Propose (parallel, independent)
 
-Spawn specialist agents **simultaneously**, one per active lens. Each agent:
+Spawn specialist agents **simultaneously**, one per active lens. Each `Agent()`
+call **must** include `model: "opus"` — without it, agents inherit the runtime
+default (often Sonnet), defeating the senior-reviewer intent. Each agent:
 
 - Receives the problem statement + constraint brief from phase 0
 - Receives its lens brief (below) and **only** its lens
@@ -189,8 +191,9 @@ Each agent returns exactly:
 
 ## Phase 2 — Challenge (parallel, adversarial) [deep mode only]
 
-Spawn the same active agents again, but this time each receives **all other
-agents' proposals** (not their own). Each agent:
+Spawn the same active agents again with `model: "opus"` on every `Agent()`
+call (same rule as phase 1). This time each receives **all other agents'
+proposals** (not their own). Each agent:
 
 - Must find flaws, gaps, conflicts, and unstated assumptions in the proposals
 - Ranks concerns by severity: **blocking** (must fix), **warning** (should
@@ -267,8 +270,9 @@ On confirmation, apply edits to the plan file. On rejection, drop them.>
 
 ## Agent configuration
 
-- **Model:** all specialist agents run `model: opus` — these are senior
-  reviewers, not search workers.
+- **Model:** every `Agent()` call **must** pass `model: "opus"` explicitly.
+  Without it, agents inherit the session default (often Sonnet). These are
+  senior reviewers, not search workers — Opus is the floor.
 - **Isolation:** agents run in the main worktree (read-only analysis, no edits).
 - **Parallelism:** all agents in a given phase launch in a single message
   (parallel tool calls).
