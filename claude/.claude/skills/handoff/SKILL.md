@@ -11,10 +11,22 @@ verbatim and **stop — do not execute the skill**.
 ```
 /handoff — capture session state to HANDOFF.md + paste-ready prompt
 
+  End-of-session handoff — capture state to HANDOFF.md and print a
+  paste-ready prompt for the next Claude session. Subcommands via
+  argument: (none) = general handoff, "merged" = PR merged, prompt
+  targets the next slice, "stash" = work stashed, prompt includes the
+  stash.
+
   /handoff                       general handoff
   /handoff merged                PR merged, prompt targets next slice
   /handoff stash                 work stashed, prompt includes stash ref
   /handoff --help                show this help
+
+  See also:
+    /spawn         open a new session that picks up HANDOFF.md
+    /slice         invokes /handoff at end of each slice
+    /build         recommends /handoff between tasks
+    /cycle         invokes /handoff at end of session
 ```
 
 ---

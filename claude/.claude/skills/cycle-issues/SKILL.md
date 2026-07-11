@@ -11,12 +11,22 @@ verbatim and **stop — do not execute the skill**.
 ```
 /cycle-issues — rolling plan-and-execute loop backed by GitHub issues
 
+  Issue-backed incremental plan-and-execute loop. Same rolling workflow
+  as /cycle but tasks live as GitHub issues, tracked by a pinned tracker
+  issue with linked checkboxes. No TODO/ directory.
+
   /cycle-issues "goal"           seed a new tracker issue and start
   /cycle-issues                  continue next ready task
   /cycle-issues NN               work on task issue #NN
   /cycle-issues --adjust         replan only, no execution
   /cycle-issues --spawn [N]      fan out concurrent tasks in worktrees
   /cycle-issues --help           show this help
+
+  See also:
+    /cycle         same workflow backed by TODO/ files
+    /blueprint     heavier upfront planning alternative
+    /handoff       invoked at end of session
+    /implementer   loaded automatically in CloudKey core repo
 ```
 
 ---

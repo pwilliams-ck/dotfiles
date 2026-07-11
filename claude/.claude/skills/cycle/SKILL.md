@@ -11,12 +11,25 @@ verbatim and **stop — do not execute the skill**.
 ```
 /cycle — rolling plan-and-execute loop with a lightweight TODO/ index
 
+  Incremental plan-and-execute loop for medium-to-small repos. Seeds a
+  lightweight TODO/ index, then iterates — detail the next 1-2 tasks
+  just-in-time, execute (TDD), checkpoint the index, adjust, repeat.
+  --spawn fans out independent tasks concurrently in git worktrees
+  (auto-sized from the task graph, default cap 3). Unlike /blueprint,
+  planning is rolling — no big upfront research phase.
+
   /cycle "goal"                  seed a new cycle
   /cycle                         continue next ready task
   /cycle NN                      work on task NN
   /cycle --adjust                replan only, no execution
   /cycle --spawn [N]             fan out concurrent tasks in worktrees
   /cycle --help                  show this help
+
+  See also:
+    /cycle-issues  same workflow backed by GitHub issues
+    /blueprint     heavier upfront planning alternative
+    /handoff       invoked at end of session
+    /implementer   loaded automatically in CloudKey core repo
 ```
 
 ---

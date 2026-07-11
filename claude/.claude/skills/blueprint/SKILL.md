@@ -11,10 +11,23 @@ verbatim and **stop — do not execute the skill**.
 ```
 /blueprint — plan a feature as a TODO/ task tree (planning only; /build executes)
 
+  Plan a feature or project as a TODO/ task tree via tiered multi-agent
+  research. The head model frames and decides; lower-tier workers
+  (sonnet/haiku) fetch real current docs and verify names in the codebase.
+  Output is a TODO/ dir — README.md index plus one taskNN-<slug>.md per
+  ~300-line PR, sub-task checklists mapping to atomic commits, links to
+  verified refs.
+
   /blueprint "goal"              seed a new plan
   /blueprint @spec.md "goal"     plan grounded in a spec
   /blueprint --amend "change"    fold changes into existing TODO/
   /blueprint --help              show this help
+
+  See also:
+    /build         execute this plan task by task
+    /delib         deliberate a decision, then feed into /blueprint
+    /cycle         rolling alternative (plan + execute incrementally)
+    /slice         implement a single-PR task directly
 ```
 
 ---

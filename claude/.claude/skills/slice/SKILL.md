@@ -11,9 +11,21 @@ verbatim and **stop — do not execute the skill**.
 ```
 /slice — implement a scoped task as a TDD vertical slice (red-green-refactor)
 
+  Implement a scoped task as a TDD vertical slice — failing tests first,
+  green checks, feature-branch commits, a PR offer, and a handoff note.
+  Works in any repo; honours the project's own CLAUDE.md, git policy,
+  and test/build tooling. Pass the task id or a pointer to its spec as
+  the argument.
+
   /slice "add rate limiting"     implement by description
   /slice 07c2                    implement by task id
   /slice --help                  show this help
+
+  See also:
+    /handoff       invoked at end of each slice
+    /delib         deliberate a decision before implementing
+    /build         multi-task execution from a /blueprint plan
+    /cycle         rolling plan-and-execute alternative
 ```
 
 ---
