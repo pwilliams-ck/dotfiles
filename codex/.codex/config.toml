@@ -1,0 +1,110 @@
+model = "gpt-5.5"
+model_reasoning_effort = "medium"
+personality = "pragmatic"
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+
+[projects."/Users/pwilliams/Developments/progrums/leymark-ta"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/hbax"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/hbops"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Notes"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Documents/New project"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/hbs-queue"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/ck-landing"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/progrums/wendid"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/vcd-platform-go"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/vcd-data-store-metrics"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/hostbill-svc"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/infra-security-monitor"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/ck27-os-lab"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/console-portal"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/managed-dr-iaas-docs"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/hex-iaas-portal"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/ck-portal"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/.claude"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/ckc"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/Developments/work/ck/programmin/local-core"]
+trust_level = "trusted"
+
+[projects."/Users/pwilliams/dotfiles"]
+trust_level = "trusted"
+
+[marketplaces.openai-bundled]
+last_updated = "2026-06-03T02:09:47Z"
+source_type = "local"
+source = "/Users/pwilliams/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-05-01T12:55:28Z"
+source_type = "local"
+source = "/Users/pwilliams/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."browser-use@openai-bundled"]
+enabled = true
+
+[tui]
+vim_mode_default = true
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "five-hour-limit", "weekly-limit", "context-window-size", "task-progress", "context-remaining"]
+status_line_use_colors = true
+session_picker_view = "dense"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+"gpt-5.6-sol" = 1
+
+[features]
+memories = true

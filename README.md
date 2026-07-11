@@ -1,9 +1,7 @@
 # Parker's Dotfiles
 
 Personal macOS config, deployed with [GNU Stow](https://www.gnu.org/software/stow/).
-Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`) is a
-Stow package; `stow <pkg>` symlinks it into `$HOME`. The deployed files are symlinks
-back into the repo, so editing here edits the live config.
+Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`) is a Stow package; `stow <pkg>` symlinks it into `$HOME`. The deployed files are symlinks back into the repo, so editing here edits the live config.
 
 ## Table of Contents
 
@@ -25,7 +23,7 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/dotfiles
 cd ~/dotfiles
 
 # 3. Deploy packages
-stow nvim tmux scripts markdownlint
+stow nvim tmux scripts markdownlint codex
 ```
 
 `stow -D <pkg>` un-deploys (removes the symlinks).
@@ -51,6 +49,26 @@ Not carried by the repo — set up separately on each machine:
 - **MCP servers** (e.g. clickup) and their auth — machine-local (`~/.claude.json`); reconfigure.
 - `~/.claude/settings.local.json` and `hooks/logs/` — machine-local, intentionally untracked.
 - The hook scripts were vendored from the archived `review-hooks` repo; edit them under `claude/.claude/hooks/scripts/`.
+
+### Codex
+
+The Codex CLI is **not** in this repo — install it separately. Codex keeps runtime state (`sessions/`, `history.jsonl`, sqlite DBs, caches, memories, plugin caches, auth, and temporary files) inside `~/.codex`, so it must already exist as a real directory before stowing — otherwise Stow symlinks the whole `~/.codex` into the repo and Codex writes state into git.
+
+```bash
+codex                       # log in; creates ~/.codex as a real dir
+# quit Codex, then:
+cd ~/dotfiles && stow codex
+```
+
+Stowed:
+
+- `config.toml` — model, TUI, trusted projects, marketplace, plugin, and feature settings.
+- `AGENTS.md` — global Codex instructions.
+- `rules/default.rules` — approved command prefix rules.
+
+Not carried by the repo — keep machine-local:
+
+- `auth.json`, `installation_id`, sqlite DBs, logs, sessions, history, caches, plugin caches, memories, worktrees, shell snapshots, temporary files, and automation reports.
 
 ## Terminal
 

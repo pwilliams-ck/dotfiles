@@ -13,7 +13,7 @@ This repo grants push and PR access, but **approval-gated**: always show the exa
 
 ## Architecture: Stow package layout
 
-Each top-level directory (`nvim/`, `tmux/`, `scripts/`) is a **GNU Stow package** whose internal path mirrors where it lands under `$HOME`. For example `nvim/.config/nvim/init.lua` is deployed to `~/.config/nvim/init.lua`.
+Each top-level directory (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`) is a **GNU Stow package** whose internal path mirrors where it lands under `$HOME`. For example `nvim/.config/nvim/init.lua` is deployed to `~/.config/nvim/init.lua`.
 
 Deploy by symlinking a package into `$HOME` from the repo root:
 
@@ -23,6 +23,7 @@ stow tmux         # symlinks tmux/.config/tmux       -> ~/.config/tmux
 stow scripts      # symlinks scripts/.local/bin/*    -> ~/.local/bin/
 stow markdownlint # symlinks markdownlint/.markdownlint.json -> ~/.markdownlint.json
 stow claude       # symlinks claude/.claude/*        -> ~/.claude/
+stow codex        # symlinks codex/.codex/*         -> ~/.codex/
 stow -D nvim      # un-deploy (remove symlinks)
 ```
 
@@ -76,3 +77,13 @@ Stowed:
 - `hooks/scripts/` — `bash-write-gate.sh` (PreToolUse(Bash) gate), `rename-plans.sh` (Stop hook), and their `common.sh` lib. **Vendored** from the now-archived `review-hooks` repo and wired via the `hooks` block in `settings.json`; edit here = live. The dormant scripts and `patterns/` from that repo were intentionally left behind.
 
 `settings.local.json` is machine-local and deliberately **not** stowed.
+
+## Codex (`codex/.codex/`)
+
+Global Codex CLI config. `~/.codex/` is a real directory full of machine state, so Stow **folds**: only the items below become symlinks; everything else there (`auth.json`, `installation_id`, sqlite DBs, logs, `sessions/`, `history.jsonl`, caches, plugin caches, memories, worktrees, shell snapshots, temporary files, and automation reports) stays real and untracked.
+
+Stowed:
+
+- `config.toml` — model, TUI, trusted projects, marketplace, plugin, and feature settings.
+- `AGENTS.md` — global Codex instructions.
+- `rules/default.rules` — approved command prefix rules.

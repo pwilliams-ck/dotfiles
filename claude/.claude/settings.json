@@ -84,7 +84,6 @@
     ],
     "defaultMode": "default"
   },
-  "model": "claude-fable-5[1m]",
   "disableClaudeAiConnectors": true,
   "hooks": {
     "Stop": [

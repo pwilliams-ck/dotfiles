@@ -1,5 +1,85 @@
-# macOS
+# OS metadata
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor state
+.idea/
+.vscode/
+*.swp
+*.swo
+*.tmp
+*~
+
+# Logs and local runtime state
+*.log
+*.pid
+*.seed
+*.pid.lock
+logs/
+tmp/
+temp/
+.tmp/
+.cache/
+
+# Local env and secrets
+.env
+.env.*
+!.env.example
+!.envrc.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Package manager and dependency output
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+!.yarn/releases/
+!.yarn/plugins/
+!.yarn/sdks/
+!.yarn/versions/
+vendor/
+dist/
+build/
+coverage/
+
+# Language/tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.gradle/
+target/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Archives and binary dumps
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
 
 # LazyVim lockfile
 nvim/.config/nvim/lazy-lock.json
