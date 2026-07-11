@@ -3,6 +3,24 @@ name: cycle
 description: Incremental plan-and-execute loop for medium-to-small repos. Seeds a lightweight TODO/ index, then iterates — detail the next 1-2 tasks just-in-time, execute (TDD), checkpoint the index, adjust, repeat. --spawn fans out independent tasks concurrently in git worktrees (auto-sized from the task graph, default cap 3). Unlike /blueprint, planning is rolling — no big upfront research phase. e.g. /cycle "add user preferences API", /cycle (continue next), /cycle 03 (specific task), /cycle --adjust (replan only), /cycle --spawn (concurrent fan-out in worktrees).
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/cycle — rolling plan-and-execute loop with a lightweight TODO/ index
+
+  /cycle "goal"                  seed a new cycle
+  /cycle                         continue next ready task
+  /cycle NN                      work on task NN
+  /cycle --adjust                replan only, no execution
+  /cycle --spawn [N]             fan out concurrent tasks in worktrees
+  /cycle --help                  show this help
+```
+
+---
+
 # Cycle (`/cycle`)
 
 Incremental plan-and-execute loop. The **head model** (this session) owns the

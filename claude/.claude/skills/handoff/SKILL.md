@@ -3,6 +3,22 @@ name: handoff
 description: End-of-session handoff — capture state to HANDOFF.md and print a paste-ready prompt for the next Claude session. Subcommands via argument: (none) = general handoff, "merged" = PR merged, prompt targets the next slice, "stash" = work stashed, prompt includes the stash. e.g. /handoff, /handoff merged, /handoff stash.
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/handoff — capture session state to HANDOFF.md + paste-ready prompt
+
+  /handoff                       general handoff
+  /handoff merged                PR merged, prompt targets next slice
+  /handoff stash                 work stashed, prompt includes stash ref
+  /handoff --help                show this help
+```
+
+---
+
 # Session Handoff
 
 Produce two artifacts, in this order: an updated handoff file, then a

@@ -3,6 +3,21 @@ name: spawn
 description: Open a new interactive Claude Code session in a new tmux window (like prefix+c) of the current tmux session, running the same model as the caller. Seeds it with a HANDOFF.md pickup (if present) and a 15%/20% context-budget rule; optional argument appends the task, e.g. /spawn, /spawn "continue task 07c2".
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/spawn — open a new Claude Code session in a new tmux window (same model)
+
+  /spawn                         new session, picks up HANDOFF.md if present
+  /spawn "continue task 07c2"    new session seeded with a task
+  /spawn --help                  show this help
+```
+
+---
+
 # Spawn a sibling Claude Code session
 
 Open a fresh interactive `claude` in a **new window of the current tmux

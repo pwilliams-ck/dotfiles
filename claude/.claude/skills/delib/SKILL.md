@@ -3,6 +3,23 @@ name: delib
 description: Deliberate engineering decisions via multi-agent adversarial review. Spawns specialist agents (reliability, security, ops, simplicity) to independently propose and challenge, then the head model decides. Use for architecture, design, infrastructure, and migration decisions — not implementation. Pass a question, optionally with a plan file for grounded review. e.g. /delib "should we use gRPC or HTTP", /delib --deep @plan.md "review this plan", /delib @plan.md "is the workflow engine retry strategy sound".
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/delib — multi-agent adversarial review for engineering decisions
+
+  /delib "question"              deliberate a decision
+  /delib @plan.md "question"     deliberate grounded in a plan
+  /delib --deep @plan.md "q"     add adversarial challenge round
+  /delib --lens security,ops "q" run only named lenses
+  /delib --help                  show this help
+```
+
+---
+
 # Deliberate (`/delib`)
 
 Multi-perspective adversarial review for engineering decisions. Spawns

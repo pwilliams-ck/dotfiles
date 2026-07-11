@@ -3,6 +3,21 @@ name: slice
 description: Implement a scoped task as a TDD vertical slice — failing tests first, green checks, feature-branch commits, a PR offer, and a handoff note. Works in any repo; honours the project's own CLAUDE.md, git policy, and test/build tooling. Pass the task id or a pointer to its spec as the argument, e.g. /slice 07c2 or /slice "add rate limiting".
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/slice — implement a scoped task as a TDD vertical slice (red-green-refactor)
+
+  /slice "add rate limiting"     implement by description
+  /slice 07c2                    implement by task id
+  /slice --help                  show this help
+```
+
+---
+
 # TDD Vertical Slice
 
 Implement the task named in the argument (`$ARGUMENTS`) end to end. **All of the

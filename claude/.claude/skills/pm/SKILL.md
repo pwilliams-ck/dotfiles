@@ -3,6 +3,22 @@ name: pm
 description: Project-management + documentation skill for any repo. Reconciles a ClickUp board against the current project's reality (task docs, status) and publishes finalized repo docs to Confluence. Project-agnostic: targets (workspace, board/list, Confluence space) are discovered at runtime and confirmed with you, never hard-coded. Dispatches routine MCP work to a Haiku subagent to keep bulky results out of context; recommends a stronger model only for hard planning. Invoke as /pm <action>, e.g. /pm status, /pm fill <list>, /pm publish-doc <name>.
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/pm — reconcile ClickUp board + publish docs to Confluence
+
+  /pm status                     show board vs repo state
+  /pm fill <list>                populate a ClickUp list from task docs
+  /pm publish-doc <name>         publish a repo doc to Confluence
+  /pm --help                     show this help
+```
+
+---
+
 # Project Manager (`/pm`)
 
 Keeps a ClickUp board and Confluence docs in lock-step with the **current
