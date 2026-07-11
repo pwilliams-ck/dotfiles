@@ -11,10 +11,21 @@ verbatim and **stop — do not execute the skill**.
 ```
 /pm — reconcile ClickUp board + publish docs to Confluence
 
+  Project-management + documentation skill for any repo. Reconciles a
+  ClickUp board against the current project's reality (task docs, status)
+  and publishes finalized repo docs to Confluence. Project-agnostic:
+  targets (workspace, board/list, Confluence space) are discovered at
+  runtime and confirmed with you, never hard-coded. Dispatches routine
+  MCP work to a Haiku subagent to keep bulky results out of context.
+
   /pm status                     show board vs repo state
   /pm fill <list>                populate a ClickUp list from task docs
   /pm publish-doc <name>         publish a repo doc to Confluence
   /pm --help                     show this help
+
+  See also:
+    /slice         implement behavior-changing work (not /pm's job)
+    /cycle-issues  GitHub-issue-backed planning alternative
 ```
 
 ---

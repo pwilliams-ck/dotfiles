@@ -11,9 +11,18 @@ verbatim and **stop — do not execute the skill**.
 ```
 /spawn — open a new Claude Code session in a new tmux window (same model)
 
+  Open a new interactive Claude Code session in a new tmux window (like
+  prefix+c) of the current tmux session, running the same model as the
+  caller. Seeds it with a HANDOFF.md pickup (if present) and a 15%/20%
+  context-budget rule; optional argument appends the task.
+
   /spawn                         new session, picks up HANDOFF.md if present
   /spawn "continue task 07c2"    new session seeded with a task
   /spawn --help                  show this help
+
+  See also:
+    /handoff       write HANDOFF.md before spawning
+    /cycle --spawn fan out concurrent tasks in worktrees
 ```
 
 ---

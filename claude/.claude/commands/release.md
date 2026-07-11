@@ -2,6 +2,29 @@
 argument-hint: "Bump version and update changelog"
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the command**.
+
+```
+/release — bump version and update changelog
+
+  Bump the version and update the changelog based on changes in this
+  branch. Analyzes git diff, bumps the semver PATCH in main.go (override
+  for MINOR/MAJOR), and inserts a changelog entry matching the existing
+  style. Read-only git — user handles all git operations.
+
+  /release                       run version bump + changelog
+  /release --help                show this help
+
+  See also:
+    /go-release        full Go quality checks + release
+    /feature-release   feature dev + release pipeline
+```
+
+---
+
 Bump the version and update the changelog based on changes in this branch.
 
 ## Git Commits

@@ -11,11 +11,23 @@ verbatim and **stop — do not execute the skill**.
 ```
 /delib — multi-agent adversarial review for engineering decisions
 
+  Deliberate engineering decisions via multi-agent adversarial review.
+  Spawns specialist agents (reliability, security, ops, simplicity) to
+  independently propose and challenge, then the head model decides. Use
+  for architecture, design, infrastructure, and migration decisions — not
+  implementation. Pass a question, optionally with a plan file for
+  grounded review.
+
   /delib "question"              deliberate a decision
   /delib @plan.md "question"     deliberate grounded in a plan
   /delib --deep @plan.md "q"     add adversarial challenge round
   /delib --lens security,ops "q" run only named lenses
   /delib --help                  show this help
+
+  See also:
+    /blueprint     plan a feature from a /delib decision
+    /slice         implement directly from a /delib decision
+    /cycle         plan + execute incrementally
 ```
 
 ---

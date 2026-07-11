@@ -2,6 +2,31 @@
 argument-hint: "Check git changes and run Go quality checks before release"
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the command**.
+
+```
+/go-release — check git changes and run Go quality checks before release
+
+  Prepare for release by thoroughly analyzing changes and running Go
+  quality checks. Deep-thinks through all changes for correctness, bugs,
+  edge cases, security, observability, resilience, and production
+  hardening. Runs go test, go vet, and golangci-lint. Presents a
+  prioritized to-do list for your review before bumping version and
+  changelog.
+
+  /go-release                    run the full pipeline
+  /go-release --help             show this help
+
+  See also:
+    /release           lightweight version bump (no Go checks)
+    /feature-release   feature dev + release pipeline
+```
+
+---
+
 ultrathink
 
 Prepare for release by thoroughly analyzing changes and running Go quality checks:
