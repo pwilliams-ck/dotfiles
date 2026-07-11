@@ -485,8 +485,46 @@ seeding a `/cycle` run.
    three merge-gate scenarios.
 
 5. **Size the vertical slice.** A good slice is: one entity OR one adapter OR
-   one route group OR one billing flow. It ships with its tests. It's ≤300
+   one route group OR one billing flow. It ships with its tests. It's ~300
    changed lines of implementation. If larger, split at the domain boundary.
+
+## PR & commit sizing
+
+PRs are **small by design** — target ~300 changed lines per PR (hard cap
+~500, excluding generated/vendored/lockfiles/docs). This is enforced by a
+`pr-size-gate` hook at `gh pr create`. Plan to stay under, not to hit the
+cap.
+
+### Atomic commits within a PR
+
+Each commit is one logical change that builds and passes tests on its own:
+
+- **One commit = one complete thought.** Entity + its tests. Step + its tests.
+  Route + its tests. Never split a change from its test across commits, and
+  never combine unrelated changes.
+- **Commit order matters.** A reviewer reads commits in sequence. Each should
+  make sense given only what came before it. Entity registration before the
+  step that uses it. Adapter before the step that calls it.
+- **Smallest useful unit.** If a commit can be split further and each half
+  still builds green, split it. A 40-line commit is better than a 120-line
+  commit that does three things.
+- **Iteration commits are scaffolding.** During development you may have
+  rough intermediate commits — that's fine, the PR squashes at merge. But
+  aim for clean logical commits from the start; don't rely on squash to
+  hide a mess.
+
+### When to split a PR
+
+Split **before** a branch grows past the cap, not after. Signs you need to
+split:
+
+- The diff touches more than two subsystem directories.
+- The plan has steps that are independently shippable (entity can land
+  without the route that reads it).
+- You're past ~250 lines and still have work to do.
+
+Split at vertical slices — each PR delivers a complete, testable increment.
+Propose the split up front in the plan, not as a mid-stream surprise.
 
 ## Task structure
 
@@ -496,6 +534,7 @@ Each task in a plan should specify:
 ## Task: <imperative verb> <thing>
 
 Files: <list of files to create or modify>
+Estimated lines: <target ~300, flag if approaching 500>
 Write path: <direct Store | WriteClient | engine action | read-only>
 External: <adapter method | none>
 Effects key: <key pattern | none>
@@ -514,6 +553,9 @@ Gate: <what must be true before this task can start>
   anything that queries it.
 - **One concern per task.** Don't mix "add entity" with "add route." The entity
   + steps + tests are one slice; the route + middleware + tests are another.
+- **Plan for the cap.** Every task should estimate its line count. If a task
+  looks like it'll exceed ~300 lines, break it down further during planning,
+  not during implementation.
 - **Front-load the hard question.** If there's a design fork (which adapter
   pattern? which state machine shape? where does the write live?), surface it
   as the first item, not a mid-stream discovery.
