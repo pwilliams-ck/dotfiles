@@ -3,6 +3,24 @@ name: cycle-issues
 description: Issue-backed incremental plan-and-execute loop. Same rolling workflow as /cycle but tasks live as GitHub issues, tracked by a pinned tracker issue with linked checkboxes. No TODO/ directory. e.g. /cycle-issues "add user preferences API", /cycle-issues (continue next), /cycle-issues 03 (specific task), /cycle-issues --adjust (replan only), /cycle-issues --spawn (concurrent fan-out in worktrees).
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/cycle-issues — rolling plan-and-execute loop backed by GitHub issues
+
+  /cycle-issues "goal"           seed a new tracker issue and start
+  /cycle-issues                  continue next ready task
+  /cycle-issues NN               work on task issue #NN
+  /cycle-issues --adjust         replan only, no execution
+  /cycle-issues --spawn [N]      fan out concurrent tasks in worktrees
+  /cycle-issues --help           show this help
+```
+
+---
+
 # Cycle Issues (`/cycle-issues`)
 
 Same rolling plan-and-execute loop as `/cycle`, but the backing store is

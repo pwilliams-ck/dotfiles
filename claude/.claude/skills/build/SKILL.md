@@ -3,6 +3,22 @@ name: build
 description: Execute a /blueprint plan — work through TODO/ task by task with tiered coordination. The head model orchestrates, reviews, and owns git; implementation workers (opus, or sonnet for fully specified sub-tasks) do the TDD edits. One task = one PR (~300 lines), one sub-task = one atomic commit; checkboxes updated as commits land; TODO/ edits proposed to the user before applying. e.g. /build, /build 03, /build 03.2.
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/build — execute a /blueprint plan task by task (TDD, one PR per task)
+
+  /build                         next ready task
+  /build 03                      specific task
+  /build 03.2                    resume at a sub-task
+  /build --help                  show this help
+```
+
+---
+
 # Build (`/build`)
 
 Execute the plan in `TODO/`. The **head model** (this session) sequences,

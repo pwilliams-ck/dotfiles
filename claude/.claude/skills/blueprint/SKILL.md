@@ -3,6 +3,22 @@ name: blueprint
 description: Plan a feature or project as a TODO/ task tree via tiered multi-agent research. The head model frames and decides; lower-tier workers (sonnet/haiku) fetch real current docs and verify names in the codebase. Output is a TODO/ dir — README.md index plus one taskNN-<slug>.md per ~300-line PR, sub-task checklists mapping to atomic commits, links to verified refs. Planning only — implementation is /build. e.g. /blueprint "add OIDC login to the admin panel", /blueprint @spec.md, /blueprint --amend "fold in rate limiting".
 ---
 
+## Help
+
+If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
+verbatim and **stop — do not execute the skill**.
+
+```
+/blueprint — plan a feature as a TODO/ task tree (planning only; /build executes)
+
+  /blueprint "goal"              seed a new plan
+  /blueprint @spec.md "goal"     plan grounded in a spec
+  /blueprint --amend "change"    fold changes into existing TODO/
+  /blueprint --help              show this help
+```
+
+---
+
 # Blueprint (`/blueprint`)
 
 Turn a goal into an executable plan: the **head model** (this session) frames,
