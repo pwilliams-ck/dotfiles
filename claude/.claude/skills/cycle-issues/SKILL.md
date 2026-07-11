@@ -1,0 +1,184 @@
+---
+name: cycle-issues
+description: Issue-backed incremental plan-and-execute loop. Same rolling workflow as /cycle but tasks live as GitHub issues, tracked by a pinned tracker issue with linked checkboxes. No TODO/ directory. e.g. /cycle-issues "add user preferences API", /cycle-issues (continue next), /cycle-issues 03 (specific task), /cycle-issues --adjust (replan only), /cycle-issues --spawn (concurrent fan-out in worktrees).
+---
+
+# Cycle Issues (`/cycle-issues`)
+
+Same rolling plan-and-execute loop as `/cycle`, but the backing store is
+**GitHub issues** instead of a `TODO/` directory. A single **tracker issue**
+is the index; each task is its own issue. The head model owns the plan and
+git; all repo rules apply unchanged.
+
+## Syntax
+
+```
+/cycle-issues ["goal"]       # seed a new tracker issue and start the first task
+/cycle-issues                # continue: detail + execute the next ready task
+/cycle-issues NN             # work on task issue #NN
+/cycle-issues --adjust       # review and adjust the plan — no execution
+/cycle-issues --spawn [N]    # concurrent fan-out (same as /cycle --spawn)
+```
+
+## Model tiers
+
+Same as `/cycle`:
+
+| Role | Model | Job |
+|------|-------|-----|
+| Head | session model | Plan, sequence, review, own git and issues. |
+| Implementation worker | `model: "opus"` | Execute one sub-task: red → green → refactor. |
+| Lookups | default | Greps, quick doc checks. |
+
+Every `Agent()` call passes `model:` explicitly. **Never spawn Fable
+subagents.**
+
+## Issue structure
+
+### Tracker issue (the index)
+
+One issue per cycle. Title: `cycle: <goal>`. Body:
+
+```markdown
+## Tasks
+
+- [ ] #<issue> — `<slug>` ~M
+- [ ] #<issue> — `<slug>` ~S (depends on #<issue>)
+- ...
+
+## Refs
+- Test command: `<cmd>`
+- Build/lint: `<cmd>`
+- Key files: <list>
+```
+
+Label: `cycle-tracker`. Pin it if the repo supports pinning
+(`gh issue pin <number>` — best effort, don't fail if unsupported).
+
+**Adjustments** are posted as comments on the tracker issue (append-only
+log, same role as `TODO/README.md`'s adjustments log).
+
+### Task issues
+
+One issue per task. Title: `<slug>`. Body:
+
+```markdown
+**Goal:** <one sentence>  **Branch:** <type>/<kebab>  **Deps:** #<issue> or none
+Tracker: #<tracker-number>
+
+## Sub-tasks
+- [ ] 1. <behavior> — test: <what the failing test proves>; files: <list>
+- [ ] 2. ...
+
+## Verify
+<exact commands>
+
+## Done when
+<observable acceptance criteria>
+```
+
+Label: `cycle-task`. Assign to self if `gh` auth allows.
+
+## Phase 0 — Seed (first invocation with a goal)
+
+1. Read repo `CLAUDE.md` and scan the codebase (same lightweight pass as
+   `/cycle`).
+2. State the goal; decompose into rough task list with size estimates.
+3. **Checkpoint:** show the task list, get one OK.
+4. Create the task issues (title + one-line body only — no sub-tasks yet):
+
+   ```bash
+   gh issue create --title "<slug>" --label "cycle-task" --body "<one-line goal>"
+   ```
+
+5. Create the tracker issue with the checkbox list linking to the task
+   issues. Label `cycle-tracker`.
+6. Pin the tracker (best effort).
+7. Fall through to phase 1 for the first task.
+
+**Guard:** before seeding, check for an open `cycle-tracker` issue:
+`gh issue list --label cycle-tracker --state open --limit 1`. If one exists,
+stop and ask:
+
+> Tracker #NN is open. Use `--adjust` to modify it, or confirm starting a
+> new cycle (the old tracker stays open).
+
+## Phase 1 — Detail (each iteration)
+
+1. Read the tracker issue body to find the next ready task (unchecked,
+   deps closed).
+2. Flesh out the task issue body with sub-tasks, verify block, and done-when
+   criteria (`gh issue edit <number> --body "..."`). Show the edit before
+   running.
+3. Verify names by grepping the codebase — same rule as `/cycle`.
+
+## Phase 2 — Execute
+
+Same TDD loop as `/cycle`. One addition: reference the task issue in commit
+messages where natural (e.g. `feat/auth: add token refresh (ref #42)`). Don't
+force it — only when it fits the commit convention.
+
+Branch handling: if already on a feature branch, stay on it. Otherwise
+propose `git switch -c <type>/<slug>`.
+
+## Phase 3 — Checkpoint
+
+After completing a task:
+
+1. Close the task issue with a comment summarizing what landed:
+
+   ```bash
+   gh issue close <number> --reason completed --comment "Landed in <branch>. PR: #<pr> (if opened)."
+   ```
+
+2. Update the tracker issue body — check the completed task's box. Use
+   `gh issue edit <tracker> --body "..."` with the updated checkbox list.
+3. **Adjust the plan** — if lessons learned warrant changes, add a comment
+   to the tracker and update the body (reorder, resize, add/drop tasks;
+   create new task issues if adding).
+4. Offer push + `gh pr create` per repo git policy.
+5. **Decision point** — same as `/cycle`: continue, handoff, or suggest
+   `--spawn`.
+
+## `--adjust` flow
+
+1. Read the tracker issue and all open task issues.
+2. Propose changes — show a before/after of the tracker body. One OK.
+3. Apply edits to tracker body. Add a comment explaining the adjustment.
+4. Create/close task issues as needed.
+
+## `--spawn` flow (concurrent fan-out)
+
+Same as `/cycle --spawn` — auto-size from the task graph, create worktrees,
+spawn tmux windows. The only difference: spawned sessions read their task
+from the GitHub issue instead of a `TODO/taskNN-*.md` file. Seed prompt:
+
+```
+Read issue #<number> (gh issue view <number>). Execute all sub-tasks (TDD,
+approval-gated commits). When done: push the branch, offer gh pr create,
+close the issue with a summary comment, then write HANDOFF.md.
+Context budget: 15% nudge, never exceed 20%.
+```
+
+Reconvene: `/cycle-issues --adjust` reconciles — checks which task issues
+are closed, updates the tracker, cleans up worktrees.
+
+## Closing a cycle
+
+When all task checkboxes are checked and all task issues are closed:
+
+1. Add a final comment to the tracker: `Cycle complete — all tasks landed.`
+2. Close the tracker issue (`--reason completed`).
+3. Invoke **`handoff`**.
+
+## Context budget
+
+Same as `/cycle` — 15% nudge, never exceed 20%, hand off with a concrete
+resume point.
+
+## When NOT to use
+
+- Repo doesn't use GitHub (no `gh` CLI configured) — use `/cycle`.
+- Tasks are too small to warrant individual issues — use `/cycle`.
+- Need deep upfront research — `/blueprint` then `/build`.
+- Single-PR work — `/slice`.

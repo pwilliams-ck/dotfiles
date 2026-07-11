@@ -84,6 +84,7 @@
     ],
     "defaultMode": "default"
   },
+  "model": "claude-fable-5[1m]",
   "disableClaudeAiConnectors": true,
   "hooks": {
     "Stop": [
@@ -191,7 +192,7 @@
     "feature-dev@claude-code-plugins": true,
     "gopls-lsp@claude-plugins-official": true
   },
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
   "tui": "fullscreen",
   "editorMode": "vim",
   "verbose": false,
@@ -204,6 +205,5 @@
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": true,
-  "voiceEnabled": true,
-  "model": "claude-fable-5[1m]"
+  "voiceEnabled": true
 }

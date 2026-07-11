@@ -4,14 +4,14 @@
 #
 # "Net changed lines" = added + deleted on <base>...HEAD, EXCLUDING lockfiles,
 # generated code, vendored/build dirs, and docs/ — matching the PR-size budget
-# in CLAUDE.md (~400 max). This is a best-effort mirror of that budget's
+# in CLAUDE.md (~500 max). This is a best-effort mirror of that budget's
 # exclusions, never a perfect match for a hand-written PR description.
 
 # Budget thresholds — single source of truth for both hooks. Cap mirrors
 # CLAUDE.md's ~400-line max. The count is a best-effort, non-exact mirror of
 # the PR-description budget, so it's a firm wall, not a precise measure.
-PR_SIZE_CAP=400   # gh pr create is denied above this (net changed lines)
-PR_SIZE_WARN=250  # post-commit warning fires above this
+PR_SIZE_CAP=500   # gh pr create is denied above this (net changed lines)
+PR_SIZE_WARN=350  # post-commit warning fires above this
 
 # ERE of paths excluded from the budget.
 PR_SIZE_EXCLUDE_RE='(^|/)(vendor|node_modules|third_party|dist|build|docs)/|(^|/)go\.sum$|(^|/)package-lock\.json$|(^|/)pnpm-lock\.yaml$|\.lock$|\.pb\.go$|_gen\.go$|\.generated\.'
