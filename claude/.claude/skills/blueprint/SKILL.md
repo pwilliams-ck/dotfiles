@@ -73,6 +73,15 @@ spawn workers for what the head already read in phase 1.
 
 ## Phase 4 — Write `TODO/`
 
+**Guard:** Before writing, check if `TODO/` already exists. If it does **and
+`--amend` was not passed**, stop and ask:
+
+> `TODO/` already exists with N task files. Running without `--amend` will
+> overwrite it. Options: re-run with `--amend` to fold in, or confirm
+> overwrite.
+
+Never silently overwrite an existing `TODO/`.
+
 Create at the repo root (plain file writes — no git commands):
 
 **`TODO/README.md`** — the index, and the shared context that makes every

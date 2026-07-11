@@ -57,7 +57,7 @@ I'm dev #2 on a small team; the lead owns the codebase and every decision, and d
 - **Branch:** `^(main|(feat|fix|chore|docs|refactor|test|ci|perf|build|revert)/.+)$` (e.g. `feat/peer-dispatcher`). Remote-enforced.
 - **Commit subject:** `^[a-z]+(/[a-z]+)?: [a-z]` (e.g. `feat/peer: wire codex dispatcher`). Subject lowercase; body normal.
 - **One commit per logical change** (impl + tests + plan updates together), each building and passing tests on its own. Iteration commits are scaffolding — the PR squashes at merge.
-- **Keep PRs small — ~400 changed lines max** (excluding generated, vendored, lockfiles, docs). Split at vertical slices before a branch grows past that; propose the split up front. The `pr-size-gate` hook enforces this at `gh pr create`; exceed it only under my explicit direction — never self-authorize a bypass.
+- **Keep PRs small — ~500 changed lines max** (excluding generated, vendored, lockfiles, docs). Split at vertical slices before a branch grows past that; propose the split up front. The `pr-size-gate` hook enforces this at `gh pr create`; exceed it only under my explicit direction — never self-authorize a bypass.
 
 **Prefer modern single-purpose porcelain** (left, not right):
 
