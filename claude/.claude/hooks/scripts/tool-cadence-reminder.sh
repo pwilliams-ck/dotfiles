@@ -32,4 +32,4 @@ printf '%s' "$count" > "$counter_file"
 
 (( count % EVERY == 0 )) || exit 0
 
-jq -n '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:"Reminder: stay concise; follow CLAUDE.md exactly (TDD, git approval gates, no AI attribution); priorities: security, data integrity, reliability first, then readability, then performance."}}'
+jq -n '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:"Reminder: stay concise; follow CLAUDE.md exactly (git approval gates, no AI attribution, TDD only if the repo CLAUDE.md asks); priorities: security, data integrity, reliability first, then readability, then performance."}}'

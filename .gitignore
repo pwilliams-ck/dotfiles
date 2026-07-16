@@ -86,3 +86,6 @@ nvim/.config/nvim/lazy-lock.json
 
 # Claude Code launcher symlink (written here via folded Stow dir; machine/version-specific)
 scripts/.local/bin/claude
+
+# reqd lives in its own repo now; this is a machine-local symlink onto PATH
+scripts/.local/bin/reqd
