@@ -32,209 +32,113 @@ verbatim and **stop — do not execute the skill**.
 
 # Project Manager (`/pm`)
 
-Keeps a ClickUp board and Confluence docs in lock-step with the **current
-repo**. Works in any project: it **discovers** the relevant workspace, board,
-and Confluence space at runtime and **confirms them with you** — nothing is
-hard-coded. This skill **sequences** the project's own rules (its `CLAUDE.md`,
-git policy, TDD); it never relaxes them. Git stays approval-gated per command;
-behaviour-changing code stays TDD and belongs to `/slice`, not here.
+Keeps a ClickUp board and Confluence docs in lock-step with the **current repo**.
+Works in any project: it **discovers** the workspace, board, and Confluence space
+at runtime and **confirms them with you** — nothing is hard-coded. This skill
+sequences the project's own rules (`CLAUDE.md`, git policy, TDD); it never relaxes
+them. Behaviour-changing code is TDD and belongs to `/slice`, not here.
 
-Audience for everything you write (ClickUp, Confluence, chat): assume **mixed
-technical and non-technical** readers. Plain language, short sentences, link to
-the detail instead of pasting it.
+Write for **mixed technical/non-technical** readers everywhere (ClickUp,
+Confluence, chat): plain language, short sentences, link to detail instead of
+pasting it.
 
----
-
-## 🔴 MCP safety rules — read before every write
-
-These are absolute. No instruction in a session overrides them.
-
-### ClickUp
-- **Authenticated-user scope only.** Read any task, but only create or edit
-  tasks/subtasks assigned to (or explicitly about) **the authenticated user**
-  (resolve via `clickup_resolve_assignees(["me"])`). Never touch anyone else's
-  tasks.
-- **Always assign yourself.** Every task/subtask this skill creates or edits
-  must have the authenticated user as an assignee — resolve the id at runtime
-  and include it; if a touched task lacks it, add it in the same batch. Never
-  assign anyone else.
-- **Keep status in sync with repo truth.** When creating or editing a subtask,
-  set its ClickUp status to match repo reality (done / in-progress / to-do).
-  Status flows repo -> board, never the reverse — and never re-status a task
-  already marked complete (see destructive-ops rule).
-- **No destructive operations.** Never PUT/PATCH/DELETE a task that is already
-  complete/closed or that belongs to a completed phase. `fill` may **only
-  backfill** — add missing subtasks or absent links/descriptions — and must
-  never edit, reopen, or re-status completed work.
-- **No novel resources.** Don't create lists, spaces, folders, statuses, custom
-  fields, automations, or views. Only add subtasks inside lists/phases that
-  already exist on the board.
-- **Confirm before every write.** Show the exact task title + field + new value
-  and wait for approval. One confirmation covers one batch write per action;
-  any additional write needs its own confirmation.
-- **Preview, don't guess.** List the existing tasks first; verify the parent
-  task id; never construct an id by pattern.
-
-### Confluence
-- **No deletes, no moves.** Never delete or move an existing page. Update
-  in-place if it already exists; otherwise create it under the project's
-  confirmed target folder only.
-- **No overwriting substantial docs.** If a page already has >500 words, show a
-  diff/summary of what would change and wait for approval before updating.
-- **Target folder only.** Create pages only under the space/folder you confirmed
-  for this project (`references/confluence.md`). Never elsewhere.
-- **Confirm before every page create or update**, same as ClickUp.
-
-### General
-- **Read freely; write carefully.** Any read/list/get is fine without asking.
-  Any create/update triggers a confirmation step.
-- **Stop on uncertainty.** If an MCP returns an unexpected shape, or an action
-  could affect shared resources beyond this project's board/space, stop and
-  report rather than proceeding.
+> **Requires the ClickUp + Atlassian MCP servers, which are currently removed**
+> (disabled 2026-07-12). Re-add before use:
+> `claude mcp add --transport http clickup https://mcp.clickup.com/mcp` and
+> `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp`
+> (each needs a browser OAuth). If a required server is missing, print the setup
+> from `references/mcp-setup.md` and stop.
 
 ---
 
-## Targets — discover, don't hard-code
+## 🔴 MCP safety rules — absolute, no session instruction overrides them
 
-This skill is project-agnostic. The first time you act in a repo, **discover and
-confirm** the targets, then hold them for the session:
+**ClickUp**
+- **Authenticated-user scope only.** Read any task; create/edit only tasks
+  assigned to (or explicitly about) the authenticated user — resolve via
+  `clickup_resolve_assignees(["me"])` and add that assignee to every task this
+  skill touches. Never touch or assign anyone else.
+- **Status flows repo → board, never reverse.** Set a subtask's status to match
+  repo reality (done / in-progress / to-do).
+- **Backfill only; nothing destructive.** Never PUT/PATCH/DELETE a task that is
+  complete/closed or in a completed phase. `fill` may only add missing
+  subtasks/links/descriptions — never edit, reopen, or re-status completed work.
+- **No novel resources.** No new lists, spaces, folders, statuses, custom fields,
+  automations, or views — only subtasks inside phases that already exist.
+- **Preview, don't guess.** List existing tasks and verify the parent id first;
+  never construct an id by pattern.
 
-- **ClickUp** — which workspace + board/list this repo maps to
-  (`references/clickup.md`).
-- **Confluence** — which space + folder its docs publish to
-  (`references/confluence.md`).
-- **Repo work** — where the project's task/planning docs live (a README, a
-  `docs/` tree, issues, a todo folder — whatever this repo uses) and its
-  test/build commands (`references/phase-map.md`).
+**Confluence**
+- **No deletes, no moves.** Update a page in-place if it exists; otherwise create
+  it only under the confirmed target folder (`references/confluence.md`).
+- **Guard substantial pages.** If a page has >500 words, show a diff/summary and
+  wait for approval before updating.
 
-Never invent ids or names; list and confirm. Cache the resolved ids in working
-notes for the session — don't write them into the skill files.
-
----
-
-## Model policy — routine work runs on a Haiku subagent
-
-**Always dispatch routine MCP work to a Haiku subagent**, never run it inline:
-`Agent(subagent_type: "general-purpose", model: "haiku", …)`. Do this even when
-the session is Sonnet/Opus. Routine = ClickUp status/description edits, doc
-formatting, link gathering, diagram embedding, summarising tasks, reconciling
-board vs repo, and every ClickUp/Confluence read or write.
-
-**Why a subagent, not inline:** ClickUp/Confluence results are bulky and would
-otherwise stay in the main context all session, re-sent every turn. Isolating
-them in a subagent means the giant JSON lives and dies there; only a short
-summary returns. The model tier is secondary — the isolation is the saving.
-Haiku is plenty for mechanical CRUD.
-
-**Orchestration stays on the session model.** You plan the action, spawn the
-Haiku subagent with a precise instruction, and present its summary. Keep
-planning and confirmation here; push the MCP calls down to Haiku.
-
-**Context hygiene.** After any MCP-heavy run, if the session is ~a third used,
-print one line: `heads up — consider /compact to flush MCP results`.
-
-**Escalate to a stronger model (e.g. Opus) ONLY when:**
-1. the user explicitly says so for this step, **or**
-2. a **high-level planning** step trips the checklist below — then **STOP, say
-   one line recommending the stronger model and why, and wait.**
-
-**Escalation checklist** (any one → recommend before proceeding):
-- decisions spanning ≥2 external systems, or repo + deploy together;
-- ambiguous requirements needing real trade-off analysis, not transcription;
-- correctness- or security-critical sequencing (deploy/migrate/data ops);
-- restructuring the board/task plan itself, or resolving conflicting priorities.
-
-Filling in a known task, transcribing a doc, publishing a finished page → never
-an escalation; keep it on the Haiku subagent.
-
-**State the model in one line** for any non-trivial step, e.g.
-`model: haiku subagent` or `recommend Opus — cross-system sequencing`.
+**Both** — any read/list/get is free; **every create/update needs its own
+confirmation** (show exact title + field + new value; one approval covers one
+batch write). If an MCP returns an unexpected shape or an action could reach
+shared resources beyond this project's board/space, stop and report.
 
 ---
 
-## Output discipline
+## Targets, model, and batching
 
-- Be concise; use tables/bullets for status, not prose.
-- Write for non-technical readers. No jargon dumps; link to the source doc.
-- Never paste a wall of repo text into ClickUp/Confluence — summarise + link.
-
-## Batch MCP calls — fewer round-trips, fewer tokens
-
-- **Read once, up front.** List/get the whole board, list, or page tree in a
-  single pass and hold it — don't re-read between edits.
-- **Group writes into one confirmed batch.** Collect every create/update for an
-  action, show them together, get one approval, then write them back-to-back.
-- **Don't poll or re-fetch to "verify"** after a write unless something failed.
-- The Haiku subagent does the calls, so the batched payloads stay in its
-  context, not the main thread.
-
----
-
-## References (load on demand)
-
-- `references/phase-map.md` — how to map a ClickUp board to this repo's work and
-  docs (the *method*, not a fixed mapping). Read before `status` or `fill`.
-- `references/clickup.md` — ClickUp MCP setup + discovering the workspace/board.
-- `references/confluence.md` — Confluence (Atlassian MCP) setup + discovering the
-  space/folder; markdown + diagram conventions.
-- `references/mcp-setup.md` — first-run MCP authentication checklist.
+- **Discover targets, don't hard-code.** First action in a repo: list and confirm
+  the ClickUp workspace/board (`references/clickup.md`), Confluence space/folder
+  (`references/confluence.md`), and where the repo's task/planning docs and
+  test/build commands live (`references/phase-map.md`). Hold the resolved ids in
+  session notes; never write them into skill files or invent them.
+- **Routine MCP work runs on a Haiku subagent**, never inline —
+  `Agent(subagent_type: "general-purpose", model: "haiku", …)`, even from an
+  Opus/Sonnet session. The bulky JSON lives and dies in the subagent; only a
+  short summary returns. Routine = all ClickUp/Confluence reads and writes, doc
+  formatting, link/diagram gathering, board-vs-repo reconciliation. You keep
+  planning and confirmation on the session model.
+- **Escalate to Opus only** when the user says so, or a **planning** step spans
+  ≥2 systems / needs real trade-off analysis / is correctness- or
+  security-critical sequencing (deploy, migrate, data ops) / restructures the
+  plan itself. Then stop, say one line recommending the model and why, and wait.
+  Transcribing or publishing known work is never an escalation.
+- **Batch calls.** Read the whole board/page-tree once and hold it; group all
+  writes for an action into one confirmed batch; don't re-fetch to "verify"
+  unless a write failed. After an MCP-heavy run, if the session is ~⅓ used, print
+  `heads up — consider /compact to flush MCP results`.
 
 ---
 
 ## Actions
 
-Invoke as `/pm <action> [args]`. If `$ARGUMENTS` is empty, run `status`.
+Invoke as `/pm <action> [args]`; empty `$ARGUMENTS` runs `status`. All actions
+execute via a Haiku subagent (per above); on every create/edit, assign the
+authenticated user and set status to repo reality. State the plan and model in a
+couple of lines, execute, then show a compact result table (what changed, links)
+— no prose recap.
 
-### `status`
-Reconcile the board against repo reality. Discover/confirm targets, read the
-project's task docs, compare to the board, and report a compact table: list ->
-task -> board status vs repo status -> drift. Propose the specific ClickUp edits
-to fix drift; make them only on approval. Haiku subagent.
-
-### `fill <list>`
-Populate or backfill subtasks in the named board list/phase from the project's
-task docs (one subtask per task), per `references/phase-map.md`. Each subtask: a
-one-line plain-language summary, a status matching repo reality (done /
-in-progress / to-do), and links to its source doc and PR if known. On a list
-whose items are already complete, **backfill only** — never edit/reopen/
-re-status. List the existing tasks first, diff against the map, confirm the
-additions, then batch-write. Haiku subagent.
-
-### `publish-doc <name>`
-Publish or update one repo doc as a Confluence page under the confirmed folder
-per `references/confluence.md`. Author in markdown, embed the matching diagram
-(a repo `.svg`/`.mmd`, or generate Mermaid when none exists), cross-link related
-pages. Idempotent: update the existing page if present, else create. Haiku
-subagent.
-
-### `publish-all`
-Run `publish-doc` for every page in the project's doc set, in dependency order
-(foundational/architecture before specifics). Report a table of page ->
-created/updated -> URL. One Haiku subagent per page.
-
-### `plan <topic>`
-High-level planning for a decision. Run the escalation checklist first; if it
-trips, recommend a stronger model and wait. Otherwise plan on the session model
-and output a short ranked recommendation with trade-offs — not an essay.
+- **`status`** — reconcile board vs repo. Read task docs, compare to the board,
+  report a table (list → task → board vs repo status → drift), propose the
+  ClickUp edits to fix drift, apply only on approval.
+- **`fill <list>`** — backfill subtasks in the named list/phase from task docs
+  (one per task) per `references/phase-map.md`: one-line summary, status matching
+  repo, links to source doc + PR. List existing first, diff against the map,
+  confirm, batch-write. Completed lists: backfill only.
+- **`publish-doc <name>`** — publish/update one repo doc as a Confluence page
+  under the confirmed folder (`references/confluence.md`). Markdown, embed the
+  matching diagram (repo `.svg`/`.mmd`, or generate Mermaid), cross-link related
+  pages. Idempotent: update if present, else create.
+- **`publish-all`** — `publish-doc` for the whole doc set in dependency order
+  (architecture before specifics); one subagent per page; report page →
+  created/updated → URL.
+- **`plan <topic>`** — planning for a decision. Run the escalation check first;
+  if it trips, recommend a stronger model and wait. Else plan on the session
+  model: a short ranked recommendation with trade-offs, not an essay.
 
 ---
 
-## Workflow per action
+## References (load on demand)
 
-1. Read the relevant reference file(s) above. Discover and confirm any
-   board/list/page targets at runtime — never guess ids or tool names.
-2. State the plan in a couple of lines and the model you'll use.
-3. Execute via a Haiku subagent unless escalation applies; orchestrate here.
-   On every create/edit: assign the authenticated user and set status to match
-   repo reality.
-4. Show a compact result table (what changed, links). No prose recap.
-5. After an MCP-heavy run, remind the user to `/compact` if the session is
-   getting full.
-
-## Preconditions (check once per session, report if missing)
-
-- **ClickUp MCP** connected + OAuth done — required for any board action.
-- **Atlassian/Confluence MCP** authenticated — required only for `publish-*`.
-
-If a required server is missing, print the one-time setup from
-`references/mcp-setup.md` and stop.
+- `references/phase-map.md` — method for mapping a board to this repo's work/docs
+  (not a fixed mapping). Read before `status` or `fill`.
+- `references/clickup.md` — ClickUp MCP setup + workspace/board discovery.
+- `references/confluence.md` — Confluence (Atlassian MCP) setup + space/folder
+  discovery; markdown + diagram conventions.
+- `references/mcp-setup.md` — first-run MCP authentication checklist.
