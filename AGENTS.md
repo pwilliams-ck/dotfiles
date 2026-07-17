@@ -13,13 +13,14 @@ This repo grants push and PR access, but **approval-gated**: always show the exa
 
 ## Architecture: Stow package layout
 
-Each top-level directory (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`) is a **GNU Stow package** whose internal path mirrors where it lands under `$HOME`. For example `nvim/.config/nvim/init.lua` is deployed to `~/.config/nvim/init.lua`.
+Each top-level directory (`nvim/`, `tmux/`, `zsh/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`) is a **GNU Stow package** whose internal path mirrors where it lands under `$HOME`. For example `nvim/.config/nvim/init.lua` is deployed to `~/.config/nvim/init.lua`.
 
 Deploy by symlinking a package into `$HOME` from the repo root:
 
 ```bash
 stow nvim         # symlinks nvim/.config/nvim       -> ~/.config/nvim
 stow tmux         # symlinks tmux/.config/tmux       -> ~/.config/tmux
+stow zsh          # symlinks zsh/.zshrc, .p10k.zsh, .zprofile -> ~/
 stow scripts      # symlinks scripts/.local/bin/*    -> ~/.local/bin/
 stow markdownlint # symlinks markdownlint/.markdownlint.json -> ~/.markdownlint.json
 stow claude       # symlinks claude/.claude/*        -> ~/.claude/
