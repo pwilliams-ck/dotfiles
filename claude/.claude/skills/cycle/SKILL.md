@@ -29,7 +29,6 @@ verbatim and **stop — do not execute the skill**.
     /cycle-issues  same workflow backed by GitHub issues
     /blueprint     heavier upfront planning alternative
     /handoff       invoked at end of session
-    /implementer   loaded automatically in CloudKey core repo
 ```
 
 ---
@@ -74,7 +73,8 @@ ask: use `--adjust` to modify, or confirm overwrite.)
    blocks decomposition.
 2. State the goal in one sentence.
 3. Decompose into a **rough ordered task list** — title + size (`~S` ≤100,
-   `~M` 100-300, `~L` 300-500 lines) per task. No sub-tasks yet (that's phase 1).
+   `~M` 100-300, `~L` 300+ lines) per task — rough estimates, not caps. No
+   sub-tasks yet (that's phase 1).
 4. **Checkpoint:** show the list, get one OK.
 5. Write `TODO/README.md` (index below) — no `taskNN-*.md` files yet. Offer a
    commit of `TODO/` per git policy. Fall through to phase 1.

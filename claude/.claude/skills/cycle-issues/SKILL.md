@@ -26,7 +26,6 @@ verbatim and **stop — do not execute the skill**.
     /cycle         same workflow backed by TODO/ files
     /blueprint     heavier upfront planning alternative
     /handoff       invoked at end of session
-    /implementer   loaded automatically in CloudKey core repo
 ```
 
 ---
