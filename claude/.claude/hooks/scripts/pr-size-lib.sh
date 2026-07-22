@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# pr-size-lib.sh — shared net-changed-line logic for pr-size-gate.sh (hard cap
-# at PR create) and branch-size-warn.sh (growing-size warning after commit).
+# pr-size-lib.sh — shared net-changed-line logic for pr-size-gate.sh
+# (split suggestion at PR create) and branch-size-warn.sh (growing-size
+# nudge after commit). Both are advisory — nothing here blocks anything.
 #
 # "Net changed lines" = added + deleted on <base>...HEAD, EXCLUDING lockfiles,
-# generated code, vendored/build dirs, and docs/ — matching the PR-size budget
-# in CLAUDE.md (~500 max). This is a best-effort mirror of that budget's
-# exclusions, never a perfect match for a hand-written PR description.
+# generated code, vendored/build dirs, and docs/. Best-effort count, never a
+# perfect match for a hand-written PR description.
 
-# Budget thresholds — single source of truth for both hooks. Cap mirrors
-# CLAUDE.md's ~400-line max. The count is a best-effort, non-exact mirror of
-# the PR-description budget, so it's a firm wall, not a precise measure.
-PR_SIZE_CAP=500   # gh pr create is denied above this (net changed lines)
-PR_SIZE_WARN=350  # post-commit warning fires above this
+# Suggestion thresholds — single source of truth for both hooks.
+PR_SIZE_SUGGEST=500  # gh pr create gets a split suggestion above this
+PR_SIZE_WARN=350     # post-commit nudge fires above this
 
 # ERE of paths excluded from the budget.
 PR_SIZE_EXCLUDE_RE='(^|/)(vendor|node_modules|third_party|dist|build|docs)/|(^|/)go\.sum$|(^|/)package-lock\.json$|(^|/)pnpm-lock\.yaml$|\.lock$|\.pb\.go$|_gen\.go$|\.generated\.'

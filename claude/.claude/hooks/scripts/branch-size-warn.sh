@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # branch-size-warn.sh — PostToolUse(Bash). After a `git commit`, report the
-# branch's net changed lines vs its base so the size budget is visible AS IT
-# GROWS — the split into vertical slices then happens early, not as a surprise
-# deny at `gh pr create`. Silent under the warn threshold and on non-commits.
+# branch's net changed lines vs its base so the size is visible AS IT GROWS
+# and a split into vertical slices can be considered early. Advisory only.
+# Silent under the warn threshold and on non-commits.
 # Per-script kill switch: touch ~/.claude/hooks/.no-branch-size-warn
 source "$HOME/.claude/hooks/scripts/common.sh"
 source "$HOME/.claude/hooks/scripts/pr-size-lib.sh"
@@ -12,7 +12,7 @@ require_jq
 read_input
 
 WARN=$PR_SIZE_WARN
-CAP=$PR_SIZE_CAP
+SUGGEST=$PR_SIZE_SUGGEST
 
 cmd=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
 cwd=$(echo "$INPUT" | jq -r '.cwd // ""'); [[ -z "$cwd" ]] && cwd="$(pwd)"
@@ -40,10 +40,10 @@ net=$(net_changed_lines "$gitdir" "$base")
 
 (( net > WARN )) || exit 0
 
-if (( net > CAP )); then
-  msg="Branch is at ~$net net changed lines vs $base — OVER the $CAP cap (excl. lockfiles/generated/vendored/docs). \`gh pr create\` will be BLOCKED (bypass only under the user's explicit direction). Split into a vertical slice now."
+if (( net > SUGGEST )); then
+  msg="Branch is at ~$net net changed lines vs $base — past the suggested ~$SUGGEST (excl. lockfiles/generated/vendored/docs). Consider splitting into vertical slices; size is a suggestion, not a blocker."
 else
-  msg="Branch is at ~$net net changed lines vs $base (hard cap $CAP at PR create). Plan a split into vertical slices before it grows past $CAP."
+  msg="Branch is at ~$net net changed lines vs $base (suggested max ~$SUGGEST). Consider planning a split into vertical slices as it grows."
 fi
 jq -n --arg c "$msg" '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$c}}'
 exit 0

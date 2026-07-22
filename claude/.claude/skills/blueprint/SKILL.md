@@ -1,6 +1,6 @@
 ---
 name: blueprint
-description: Plan a feature or project as a TODO/ task tree via tiered multi-agent research. The head model frames and decides; lower-tier workers (sonnet/haiku) fetch real current docs and verify names in the codebase. Output is a TODO/ dir — README.md index plus one taskNN-<slug>.md per ~300-line PR, sub-task checklists mapping to atomic commits, links to verified refs. Planning only — implementation is /build. e.g. /blueprint "add OIDC login to the admin panel", /blueprint @spec.md, /blueprint --amend "fold in rate limiting".
+description: Plan a feature or project as a TODO/ task tree via tiered multi-agent research. The head model frames and decides; lower-tier workers (sonnet/haiku) fetch real current docs and verify names in the codebase. Output is a TODO/ dir — README.md index plus one taskNN-<slug>.md per PR (~300 lines suggested), sub-task checklists mapping to atomic commits, links to verified refs. Planning only — implementation is /build. e.g. /blueprint "add OIDC login to the admin panel", /blueprint @spec.md, /blueprint --amend "fold in rate limiting".
 ---
 
 ## Help
@@ -15,7 +15,7 @@ verbatim and **stop — do not execute the skill**.
   research. The head model frames and decides; lower-tier workers
   (sonnet/haiku) fetch real current docs and verify names in the codebase.
   Output is a TODO/ dir — README.md index plus one taskNN-<slug>.md per
-  ~300-line PR, sub-task checklists mapping to atomic commits, links to
+  PR (~300 lines suggested), sub-task checklists mapping to atomic commits, links to
   verified refs.
 
   /blueprint "goal"              seed a new plan
@@ -90,9 +90,9 @@ spawn workers for what the head already read in phase 1.
 
 1. Prioritize: security/data-integrity/reliability work first, then the
    dependency order that keeps every intermediate state shippable.
-2. Cut into tasks where **each task = one PR**: target ~300 changed lines,
-   hard cap 500 (excluding generated/vendored/lockfiles). Split before a task
-   would exceed it.
+2. Cut into tasks where **each task = one PR**: suggested target ~300 changed
+   lines (excluding generated/vendored/lockfiles). Prefer splitting when a task
+   grows well past that, but size is a suggestion, not a cap.
 3. Cut each task into **sub-tasks where each sub-task = one atomic commit**
    (impl + tests together; TDD applies at build time). Each sub-task names
    the files it touches and the behavior its test proves.

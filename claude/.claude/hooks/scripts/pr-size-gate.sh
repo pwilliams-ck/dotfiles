@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-# pr-size-gate.sh — PreToolUse(Bash) gate. Denies `gh pr create` when the PR's
-# net changed lines exceed the hard cap (PR_SIZE_CAP). There is NO in-band
-# override token: exceeding the cap is allowed only under the user's explicit
-# direction, via the kill switch below — never self-authorized by the agent.
-# Everything under the cap (and every non-create gh command) defers to the
-# static `Bash(gh:*)` ask rule.
+# pr-size-gate.sh — PreToolUse(Bash) advisory. When `gh pr create` runs with a
+# diff past the suggested size (PR_SIZE_SUGGEST net changed lines), it injects
+# a suggestion to split — it never denies. The PR always defers to the static
+# `Bash(gh:*)` ask rule.
 #
-# Fails OPEN: if the base branch can't be determined, the PR is allowed to
-# proceed (to the static ask) rather than blocking legitimate work — enforcement
-# without a measurable base is impossible, and a false deny is worse here.
-# Kill switch (USER-DIRECTED ONLY): touch ~/.claude/hooks/.no-pr-size-gate
+# Fails OPEN (silent): if the base branch can't be determined, no suggestion.
+# Kill switch: touch ~/.claude/hooks/.no-pr-size-gate
 source "$HOME/.claude/hooks/scripts/common.sh"
 source "$HOME/.claude/hooks/scripts/pr-size-lib.sh"
 
@@ -17,7 +13,7 @@ check_disabled
 require_jq
 read_input
 
-CAP=$PR_SIZE_CAP
+SUGGEST=$PR_SIZE_SUGGEST
 
 cmd=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
 cwd=$(echo "$INPUT" | jq -r '.cwd // ""'); [[ -z "$cwd" ]] && cwd="$(pwd)"
@@ -40,16 +36,16 @@ fi
 explicit=$(echo "$cmd" | grep -oE -- '(--base[= ]|-B[= ])[^[:space:]]+' | head -1 \
            | sed -E 's/^(--base|-B)[= ]//; s/^["'\'']//; s/["'\'']$//' || true)
 base=$(resolve_base "$gitdir" "$explicit")
-[[ -z "$base" ]] && { log_info "pr-size-gate: no base ref, failing open"; exit 0; }
+[[ -z "$base" ]] && { log_info "pr-size-gate: no base ref, staying silent"; exit 0; }
 
 net=$(net_changed_lines "$gitdir" "$base")
 [[ -z "$net" ]] && exit 0
 [[ "$net" =~ ^[0-9]+$ ]] || exit 0
 
-if (( net > CAP )); then
-  jq -n --arg r "PR is ~$net net changed lines vs $base (hard cap $CAP; excl. lockfiles/generated/vendored/docs). Split into a vertical slice. This cap is bypassed only under the user's explicit direction — do not self-authorize an exception." \
-    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+if (( net > SUGGEST )); then
+  jq -n --arg r "PR is ~$net net changed lines vs $base (suggested max ~$SUGGEST; excl. lockfiles/generated/vendored/docs). Consider splitting into vertical slices — size is a suggestion, not a cap; proceeding is fine." \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$r}}'
   exit 0
 fi
 
-exit 0   # under cap -> defer to the static gh ask
+exit 0   # within suggestion -> defer to the static gh ask
