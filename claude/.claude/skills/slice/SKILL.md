@@ -1,6 +1,6 @@
 ---
 name: slice
-description: Implement a scoped task as a TDD vertical slice — failing tests first, green checks, feature-branch commits, a PR offer, and a handoff note. Works in any repo; honours the project's own CLAUDE.md, git policy, and test/build tooling. Pass the task id or a pointer to its spec as the argument, e.g. /slice 07c2 or /slice "add rate limiting".
+description: Implement a scoped task as a vertical slice — feature-branch commits, a PR offer, and a handoff note. Works in any repo; honours the project's own CLAUDE.md, git policy, and test/build tooling. Pass the task id or a pointer to its spec as the argument, e.g. /slice 07c2 or /slice "add rate limiting".
 ---
 
 ## Help
@@ -9,10 +9,10 @@ If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
 verbatim and **stop — do not execute the skill**.
 
 ```
-/slice — implement a scoped task as a TDD vertical slice (red-green-refactor)
+/slice — implement a scoped task as a vertical slice
 
-  Implement a scoped task as a TDD vertical slice — failing tests first,
-  green checks, feature-branch commits, a PR offer, and a handoff note.
+  Implement a scoped task as a vertical slice — feature-branch commits,
+  a PR offer, and a handoff note.
   Works in any repo; honours the project's own CLAUDE.md, git policy,
   and test/build tooling. Pass the task id or a pointer to its spec as
   the argument.
@@ -30,7 +30,7 @@ verbatim and **stop — do not execute the skill**.
 
 ---
 
-# TDD Vertical Slice
+# Vertical Slice
 
 Implement the task named in the argument (`$ARGUMENTS`) end to end. **All of the
 current repo's rules — its `CLAUDE.md`, git policy, and conventions — apply.**
@@ -56,16 +56,14 @@ per command).
 - Propose `git switch -c <type>/<kebab-task-name>` (approval-gated), following
   the repo's branch-naming convention — never work on the default branch.
 
-## 3. Red → Green → Refactor
+## 3. Implement
 
 Discover the project's test and build/lint commands first (a Makefile,
 `package.json` scripts, `pyproject`, etc.). Then for each increment:
 
-- Write the failing test first; run it and show the failure (for the right
-  reason).
-- Implement the minimum to pass; run and show green.
-- Refactor with tests green. Document exported symbols as you go, per the repo's
-  conventions.
+- Implement the change. Write tests if the repo has a test suite for the area
+  you're touching.
+- Document exported symbols as you go, per the repo's conventions.
 - Run the full test/lint check and show it green before each commit.
 - Propose the iteration commit (approval-gated). Subject per the repo's commit
   convention.

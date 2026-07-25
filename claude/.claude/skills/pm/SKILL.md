@@ -35,8 +35,8 @@ verbatim and **stop — do not execute the skill**.
 Keeps a ClickUp board and Confluence docs in lock-step with the **current repo**.
 Works in any project: it **discovers** the workspace, board, and Confluence space
 at runtime and **confirms them with you** — nothing is hard-coded. This skill
-sequences the project's own rules (`CLAUDE.md`, git policy, TDD); it never relaxes
-them. Behaviour-changing code is TDD and belongs to `/slice`, not here.
+sequences the project's own rules (`CLAUDE.md`, git policy); it never relaxes
+them. Behaviour-changing code belongs to `/slice`, not here.
 
 Write for **mixed technical/non-technical** readers everywhere (ClickUp,
 Confluence, chat): plain language, short sentences, link to detail instead of

@@ -1,6 +1,6 @@
 ---
 name: cycle
-description: Incremental plan-and-execute loop for medium-to-small repos. Seeds a lightweight TODO/ index, then iterates — detail the next 1-2 tasks just-in-time, execute (TDD), checkpoint the index, adjust, repeat. --spawn fans out independent tasks concurrently in git worktrees (auto-sized from the task graph, default cap 3). Unlike /blueprint, planning is rolling — no big upfront research phase. e.g. /cycle "add user preferences API", /cycle (continue next), /cycle 03 (specific task), /cycle --adjust (replan only), /cycle --spawn (concurrent fan-out in worktrees).
+description: Incremental plan-and-execute loop for medium-to-small repos. Seeds a lightweight TODO/ index, then iterates — detail the next 1-2 tasks just-in-time, execute, checkpoint the index, adjust, repeat. --spawn fans out independent tasks concurrently in git worktrees (auto-sized from the task graph, default cap 3). Unlike /blueprint, planning is rolling — no big upfront research phase. e.g. /cycle "add user preferences API", /cycle (continue next), /cycle 03 (specific task), /cycle --adjust (replan only), /cycle --spawn (concurrent fan-out in worktrees).
 ---
 
 ## Help
@@ -13,7 +13,7 @@ verbatim and **stop — do not execute the skill**.
 
   Incremental plan-and-execute loop for medium-to-small repos. Seeds a
   lightweight TODO/ index, then iterates — detail the next 1-2 tasks
-  just-in-time, execute (TDD), checkpoint the index, adjust, repeat.
+  just-in-time, execute, checkpoint the index, adjust, repeat.
   --spawn fans out independent tasks concurrently in git worktrees
   (auto-sized from the task graph, default cap 3). Unlike /blueprint,
   planning is rolling — no big upfront research phase.
@@ -40,8 +40,8 @@ plan, sequences work, and runs git (approval-gated). Planning is **rolling** —
 detail just enough to execute the next slice, learn, adjust, repeat. For
 medium-to-small repos where a full `/blueprint` research phase is overkill.
 
-All repo rules — `CLAUDE.md`, git policy, TDD — apply. This skill sequences
-them; it never relaxes them.
+All repo rules — `CLAUDE.md`, git policy — apply. This skill sequences them;
+it never relaxes them.
 
 ## Syntax
 
@@ -58,7 +58,7 @@ them; it never relaxes them.
 | Role | Model | Job |
 |------|-------|-----|
 | Head | session model | Plan, sequence, review, own git and TODO/. |
-| Implementation worker | `model: "opus"` | Execute one sub-task: red → green → refactor. |
+| Implementation worker | `model: "opus"` | Execute one sub-task: implement + test. |
 | Lookups | default | Greps, quick doc checks. |
 
 Every `Agent()` call passes `model:` explicitly. **Never spawn Fable subagents.**
@@ -108,7 +108,7 @@ what you're about to execute; the rest stays as titles in the index.
 
 ## Phase 2 — Execute
 
-Follow the repo's TDD policy (red → green → refactor) for each sub-task, with:
+For each sub-task:
 
 - **Branch first** — if not on a feature branch, propose `git switch -c
   <type>/<kebab>` (approval-gated). Never work on the default branch.
@@ -157,7 +157,7 @@ a spawn.
    `git worktree add ../$(basename "$PWD")-taskNN-<slug> -b <type>/<slug>`
 4. **Spawn sessions** — one `tmux new-window` per worktree using the `/spawn`
    skill's pattern (`-c <worktree-path>`, same model id), seeded with:
-   > Read TODO/taskNN-<slug>.md — execute all sub-tasks (TDD, approval-gated
+   > Read TODO/taskNN-<slug>.md — execute all sub-tasks (approval-gated
    > commits). When done: push, offer gh pr create, write HANDOFF.md with what
    > landed and any surprises. Context budget: 15% nudge, never exceed 20%.
 

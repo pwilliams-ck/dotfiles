@@ -54,7 +54,7 @@ Same as `/cycle`:
 | Role | Model | Job |
 |------|-------|-----|
 | Head | session model | Plan, sequence, review, own git and issues. |
-| Implementation worker | `model: "opus"` | Execute one sub-task: red → green → refactor. |
+| Implementation worker | `model: "opus"` | Execute one sub-task: implement + test. |
 | Lookups | default | Greps, quick doc checks. |
 
 Every `Agent()` call passes `model:` explicitly. **Never spawn Fable
@@ -141,7 +141,7 @@ stop and ask:
 
 ## Phase 2 — Execute
 
-Same TDD loop as `/cycle`. One addition: reference the task issue in commit
+Same implementation loop as `/cycle`. One addition: reference the task issue in commit
 messages where natural (e.g. `feat/auth: add token refresh (ref #42)`). Don't
 force it — only when it fits the commit convention.
 
@@ -181,8 +181,8 @@ spawn tmux windows. The only difference: spawned sessions read their task
 from the GitHub issue instead of a `TODO/taskNN-*.md` file. Seed prompt:
 
 ```
-Read issue #<number> (gh issue view <number>). Execute all sub-tasks (TDD,
-approval-gated commits). When done: push the branch, offer gh pr create,
+Read issue #<number> (gh issue view <number>). Execute all sub-tasks (approval-gated
+commits). When done: push the branch, offer gh pr create,
 close the issue with a summary comment, then write HANDOFF.md.
 Context budget: 15% nudge, never exceed 20%.
 ```

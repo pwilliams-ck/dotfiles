@@ -1,6 +1,6 @@
 ---
 name: build
-description: Execute a /blueprint plan — work through TODO/ task by task with tiered coordination. The head model orchestrates, reviews, and owns git; implementation workers (opus, or sonnet for fully specified sub-tasks) do the TDD edits. One task = one PR (~300 lines suggested), one sub-task = one atomic commit; checkboxes updated as commits land; TODO/ edits proposed to the user before applying. e.g. /build, /build 03, /build 03.2.
+description: Execute a /blueprint plan — work through TODO/ task by task with tiered coordination. The head model orchestrates, reviews, and owns git; implementation workers (opus, or sonnet for fully specified sub-tasks) do the edits. One task = one PR (~300 lines suggested), one sub-task = one atomic commit; checkboxes updated as commits land; TODO/ edits proposed to the user before applying. e.g. /build, /build 03, /build 03.2.
 ---
 
 ## Help
@@ -9,12 +9,12 @@ If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
 verbatim and **stop — do not execute the skill**.
 
 ```
-/build — execute a /blueprint plan task by task (TDD, one PR per task)
+/build — execute a /blueprint plan task by task (one PR per task)
 
   Execute a /blueprint plan — work through TODO/ task by task with tiered
   coordination. The head model orchestrates, reviews, and owns git;
   implementation workers (opus, or sonnet for fully specified sub-tasks)
-  do the TDD edits. One task = one PR (~300 lines suggested), one sub-task = one
+  do the edits. One task = one PR (~300 lines suggested), one sub-task = one
   atomic commit; checkboxes updated as commits land; TODO/ edits proposed
   to the user before applying.
 
@@ -37,8 +37,8 @@ verbatim and **stop — do not execute the skill**.
 Execute the plan in `TODO/`. The **head model** (this session) sequences,
 prompts workers, reviews their output, and runs every git command
 (approval-gated, repo policy wins). **Workers** implement. All of the repo's
-rules — `CLAUDE.md`, git policy, TDD — apply; this skill sequences them, it
-never relaxes them.
+rules — `CLAUDE.md`, git policy — apply; this skill sequences them, it never
+relaxes them.
 
 ## Syntax
 
@@ -63,7 +63,7 @@ never relaxes them.
 | Role | Model | Job |
 |------|-------|-----|
 | Head | session model | Orchestrate, review diffs/test output, own git, update TODO/. |
-| Implementation worker | `model: "opus"` (default) | Execute one sub-task TDD: red → green → refactor. |
+| Implementation worker | `model: "opus"` (default) | Execute one sub-task: implement + test. |
 | — well-specified sub-task | `model: "sonnet"` | Allowed only when the task file fully specifies names, files, and test — say why when downgrading. |
 | Lookups | `model: "haiku"` / default | Greps, doc re-checks. |
 
@@ -79,10 +79,10 @@ For each unchecked sub-task, in order:
 1. **Prompt the worker** with a self-contained brief: the sub-task line, the
    task file's Refs, the README's shared-refs rows it needs, the repo's test
    command (with bug-surfacing flags), and the contract:
-   > Write the failing test first; run it and show the failure-for-the-right-
-   > reason. Implement the minimum to pass; show green. Refactor green. Touch
-   > only the listed files. Return: what changed (per file, one line), the
-   > real test command + output, and anything that contradicted the brief.
+   > Implement the change and write tests if the area has a test suite.
+   > Run the full check; show green. Touch only the listed files. Return:
+   > what changed (per file, one line), the real test command + output, and
+   > anything that contradicted the brief.
 2. **Review** the worker's report and diff (`git diff`). Contradictions with
    the plan stop the loop → amend flow below. Rework goes back to the same
    worker via `SendMessage` — don't respawn fresh.

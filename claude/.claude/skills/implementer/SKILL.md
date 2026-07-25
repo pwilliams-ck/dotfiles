@@ -123,9 +123,9 @@ How to break work down, solo or seeding a `/cycle` run.
    reach persistence, what owns the write?
 3. **Identify the external boundary.** If it calls an external system, name
    the adapter/client and method. If none exists, that's the first subtask.
-4. **Design the test first.** What outcome proves this works? Write the test
-   description into the plan. Critical paths (money, auth): name the
-   crash-recovery scenarios (§4).
+4. **Define the acceptance criteria.** What outcome proves this works? Write
+   it into the plan. Critical paths (money, auth): name the crash-recovery
+   scenarios (§4).
 5. **Size the vertical slice.** One entity OR one adapter OR one route group,
    shipping with its tests, ~300 changed lines suggested. If it grows well
    past that, split at a domain boundary — size is a suggestion, not a cap.

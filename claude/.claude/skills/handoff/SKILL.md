@@ -68,8 +68,8 @@ Read HANDOFF.md first. We are in <repo path> on branch <branch>.
 Next: <task id / concrete first action>. <one constraint that is session-specific and not derivable from HANDOFF.md or CLAUDE.md, if any>.
 ```
 
-Rules: no restating global CLAUDE.md policy (git gates, TDD — the next
-session loads it anyway); no narrative; ≤5 lines.
+Rules: no restating global CLAUDE.md policy (git gates — the next session
+loads it anyway); no narrative; ≤5 lines.
 
 ## Subcommands (`$ARGUMENTS`)
 

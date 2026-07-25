@@ -94,7 +94,7 @@ spawn workers for what the head already read in phase 1.
    lines (excluding generated/vendored/lockfiles). Prefer splitting when a task
    grows well past that, but size is a suggestion, not a cap.
 3. Cut each task into **sub-tasks where each sub-task = one atomic commit**
-   (impl + tests together; TDD applies at build time). Each sub-task names
+   (impl + tests together). Each sub-task names
    the files it touches and the behavior its test proves.
 4. **Checkpoint:** show the user the priority-ordered task list, one line per
    task (`NN <slug> — <one clause> [deps: NN]`). One OK, then write. This is
