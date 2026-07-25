@@ -7,11 +7,12 @@ alias zshconfig='$EDITOR ~/dotfiles/zsh/.zshrc'
 alias zshaliases='$EDITOR ~/dotfiles/omz/.oh-my-zsh/custom/aliases.zsh'
 alias zshenv='$EDITOR ~/dotfiles/omz/.oh-my-zsh/custom/env.zsh'
 alias ohmyzsh='$EDITOR ~/.oh-my-zsh'
+
 # eza — shared flags, expanded into the aliases below at definition time.
 # Add --hyperlink for clickable filenames (needs tmux >= 3.4 + a supporting terminal).
 _eza=(--colour=always --colour-scale=all --colour-scale-mode=gradient
       --icons=always --classify=always --group-directories-first --git)
-
+# keep this line here.
 alias l="eza -l $_eza"
 alias ll="eza -la $_eza"
 alias lls="eza -la $_eza --sort=modified --time=modified --time-style=relative"
@@ -21,6 +22,10 @@ alias lg="eza -la $_eza --git-repos"                 # git status + nested repo 
 alias f="fzf"
 alias h="history"
 alias hf="history 1 | fzf --tac"
+alias hf1="history -t '%F' 1 | awk -v c=\$(date -v-1m +%F) '\$2 >= c' | fzf --tac"
+alias hf3="history -t '%F' 1 | awk -v c=\$(date -v-3m +%F) '\$2 >= c' | fzf --tac"
+alias hf6="history -t '%F' 1 | awk -v c=\$(date -v-6m +%F) '\$2 >= c' | fzf --tac"
+alias hfy="history -t '%F' 1 | awk -v c=\$(date -v-1y +%F) '\$2 >= c' | fzf --tac"
 alias c="clear"
 
 
@@ -47,6 +52,10 @@ alias lgit="lazygit"
 alias prs="gh pr list --author @me"
 alias prv="gh pr view --web"
 alias ci="gh run list --limit 5"
+alias prc="gh pr create"
+alias il="gh issue list"
+alias iv="gh issue view"
+alias ic="gh issue create"
 
 # Go — omz golang plugin already gives gob/got/gof/gov…
 alias gt="go test ./..."
