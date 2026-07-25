@@ -1,7 +1,7 @@
 # Parker's Dotfiles
 
 Personal macOS config, deployed with [GNU Stow](https://www.gnu.org/software/stow/).
-Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`) is a Stow package; `stow <pkg>` symlinks it into `$HOME`. The deployed files are symlinks back into the repo, so editing here edits the live config.
+Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`, `zsh/`, `omz/`) is a Stow package; `stow <pkg>` symlinks it into `$HOME`. The deployed files are symlinks back into the repo, so editing here edits the live config.
 
 ## Table of Contents
 
@@ -9,6 +9,7 @@ Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `c
 - [Terminal](#terminal)
   - [IDE](#ide)
   - [Shell](#shell)
+- [zsh / oh-my-zsh](#zsh--oh-my-zsh)
 - [Karabiner-Elements](#karabiner-elements)
 - [Raycast](#raycast)
 
@@ -23,10 +24,33 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/dotfiles
 cd ~/dotfiles
 
 # 3. Deploy packages
-stow nvim tmux scripts markdownlint codex
+stow nvim tmux scripts markdownlint codex zsh
 ```
 
 `stow -D <pkg>` un-deploys (removes the symlinks).
+
+### zsh / oh-my-zsh
+
+`zsh/` carries `.zshrc`, `.zprofile`, and `.p10k.zsh`. `omz/` carries only the
+hand-written files under `$ZSH_CUSTOM` (`~/.oh-my-zsh/custom/`) — oh-my-zsh
+itself, its bundled examples, and third-party plugins are upstream checkouts and
+are **not** in this repo. `~/.oh-my-zsh` must exist as a real directory before
+stowing `omz`, otherwise Stow symlinks the whole thing into the repo.
+
+```bash
+brew install powerlevel10k zsh-syntax-highlighting eza bat fd ripgrep fzf dust lazygit
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+git clone https://github.com/zsh-users/zsh-autosuggestions \
+  ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+cd ~/dotfiles && stow zsh omz
+```
+
+Stowed under `omz/`:
+
+- `custom/aliases.zsh` — eza/git/go/npm/docker/fzf aliases.
+- `custom/env.zsh` — `EDITOR`, `MANPAGER`, `FZF_*` defaults.
+
+oh-my-zsh gitignores `custom/`, so these symlinks won't dirty the omz checkout.
 
 ### Claude Code
 
