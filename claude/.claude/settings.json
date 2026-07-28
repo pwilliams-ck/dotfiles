@@ -169,7 +169,6 @@
     "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "feature-dev@claude-code-plugins": true,
     "gopls-lsp@claude-plugins-official": true,
     "js-lsp@local-plugins": true
   },
