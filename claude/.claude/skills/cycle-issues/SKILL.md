@@ -177,13 +177,20 @@ After completing a task:
 ## `--spawn` flow (concurrent fan-out)
 
 Same as `/cycle --spawn` — auto-size from the task graph, create worktrees,
-spawn tmux windows. The only difference: spawned sessions read their task
-from the GitHub issue instead of a `TODO/taskNN-*.md` file. Seed prompt:
+spawn one tmux window with a pane per worker, then supervise via the report
+drop + `Monitor` + `tmux send-keys` rework loop. Differences: spawned sessions
+read their task from the GitHub issue instead of a `TODO/taskNN-*.md` file, and
+report by commenting on the issue *and* dropping `<main>/.cycle-reports/NN.done`
+so the head's monitor fires. Seed prompt:
 
 ```
 Read issue #<number> (gh issue view <number>). Execute all sub-tasks (approval-gated
 commits). When done: push the branch, offer gh pr create,
 close the issue with a summary comment, then write HANDOFF.md.
+Then report to the supervisor: comment on the issue with branch, commits, files
+touched, verify output, surprises, PR number — then, only once that comment is
+posted, touch <main-path>/.cycle-reports/NN.done. If the supervisor sends
+rework, address it, re-comment, and re-touch the marker.
 Context budget: 15% nudge, never exceed 20%.
 ```
 

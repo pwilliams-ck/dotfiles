@@ -143,8 +143,8 @@ split/merge), show the index diff, one OK, apply; append to the adjustments log.
 ## `--spawn` flow (concurrent fan-out)
 
 The head stays in the main worktree — it plans the batch, creates worktrees,
-spawns sessions, then gets out of the way. It does **not** execute tasks during
-a spawn.
+spawns sessions, then **supervises**: reviews each worker's work as it reports
+in, and sends rework back down. It does **not** execute tasks during a spawn.
 
 1. **Size the batch.** Ready tasks (`[ ]`, deps `[x]`) that are mutually
    independent — no explicit dep *and* no file-list overlap (tasks touching the
@@ -155,21 +155,116 @@ a spawn.
    so worktrees branch from a state that includes the task files.
 3. **Create worktrees** from current HEAD, one per task, and verify each:
    `git worktree add ../$(basename "$PWD")-taskNN-<slug> -b <type>/<slug>`
-4. **Spawn sessions** — one `tmux new-window` per worktree using the `/spawn`
-   skill's pattern (`-c <worktree-path>`, same model id), seeded with:
+4. **Spawn sessions** — all workers go in **one new tmux window, one pane
+   each**, so the user can watch and answer every prompt without switching
+   windows. Requires `$TMUX`; if unset, stop and say so. Use the exact model id
+   this session runs on. Seed prompt per worker:
    > Read TODO/taskNN-<slug>.md — execute all sub-tasks (approval-gated
    > commits). When done: push, offer gh pr create, write HANDOFF.md with what
-   > landed and any surprises. Context budget: 15% nudge, never exceed 20%.
+   > landed and any surprises. Then report to the supervisor — write
+   > `TODO/reports/taskNN.md` in the MAIN worktree at `<main-path>` (branch,
+   > commits, files touched, verify commands + their output, surprises, PR
+   > number if opened), and only once it is fully written and closed:
+   > `touch <main-path>/TODO/reports/taskNN.done`. If the supervisor sends
+   > rework, address it and re-report the same way (overwrite both files).
+   > Context budget: 15% nudge, never exceed 20%.
 
-   Confirm all windows are alive.
-5. **Head handoff.** Refresh main-worktree `HANDOFF.md`: in-flight tasks (ids,
-   branches, worktree paths, tmux targets), unstarted tasks, and
-   `Run /cycle --adjust to reconcile after the batch lands.` Then stop.
+   First worker creates the window, the rest split it:
 
-**Reconvene** (next `/cycle` or `--adjust`): check each worktree (branch
-pushed? PR open? HANDOFF.md?), mark completed tasks `[x]` with PR numbers, then
-`git worktree remove` completed ones (approval-gated), adjust, and continue or
-spawn the next batch.
+   ```bash
+   git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
+   win=$(tmux new-window -P -F '#{window_id}' -n cycle -c <worktree-1> \
+     "claude --model <model-id> $git_allow '<seed 1>'")
+   tmux split-window -t "$win" -c <worktree-2> "claude --model <model-id> $git_allow '<seed 2>'"
+   tmux split-window -t "$win" -c <worktree-3> "claude --model <model-id> $git_allow '<seed 3>'"
+   ```
+
+   **Layout — pick from the window's actual width, don't hardcode:**
+
+   ```bash
+   w=$(tmux display-message -t "$win" -p '#{window_width}')
+   [ "$w" -ge $((80 * N)) ] \
+     && tmux select-layout -t "$win" even-horizontal \
+     || tmux select-layout -t "$win" even-vertical
+   ```
+
+   Each worker needs ~80 cols to be readable. Wide enough (external 27" ≈ 255
+   cols) → `even-horizontal`, N equal side-by-side columns. Narrower (14" laptop
+   ≈ 151 cols) → `even-vertical`, N equal full-width rows stacked top to bottom.
+   Both layouts are equally spaced by construction.
+
+   - Escape single quotes in each seed prompt (`'` → `'\''`) before embedding.
+   - Title each pane so the user can tell them apart:
+     `tmux select-pane -t <pane> -T taskNN-<slug>`.
+   - Confirm with `tmux list-panes -t "$win" -F '#{pane_id} #{pane_title}
+     #{pane_current_path}'` — N panes, right worktrees, all alive (a failed
+     `claude` launch closes its pane immediately). Keep the
+     **task → pane_id → worktree → branch** mapping; supervision needs it.
+     Report it to the user; remind them of `prefix + z` to zoom a pane and
+     `prefix + E` to re-equalize.
+5. **Write the interim handoff** — before arming supervision, refresh
+   main-worktree `HANDOFF.md`: in-flight tasks (ids, branches, worktree paths,
+   pane ids), unstarted tasks, and `Run /cycle --adjust to reconcile after the
+   batch lands.` This is the safety net if the head dies mid-batch.
+6. **Arm supervision** — `mkdir -p TODO/reports`, then one persistent `Monitor`
+   that emits a line per finished worker *and* per worker that dies without
+   reporting (silence must not look like success):
+
+   ```bash
+   cd <main-worktree>; seen=""
+   while true; do
+     for f in TODO/reports/*.done; do
+       [ -e "$f" ] || continue
+       t=$(basename "$f" .done)
+       case " $seen " in *" $t "*) continue ;; esac
+       seen="$seen $t"; echo "REPORT $t"
+     done
+     live=$(tmux list-panes -t "$win" -F '#{pane_title}' 2>/dev/null)
+     for t in <taskNN list>; do
+       case " $seen " in *" $t "*) continue ;; esac
+       case "$live" in *"$t"*) continue ;; esac
+       seen="$seen $t"; echo "PANE GONE $t — died without reporting"
+     done
+     [ $(echo $seen | wc -w) -ge N ] && { echo "BATCH COMPLETE"; break; }
+     sleep 20
+   done
+   ```
+
+   Then tell the user supervision is live and **stay resident** — do not
+   `/clear` and do not stop; each event re-invokes the head.
+
+**On each `REPORT taskNN`** (auto-review):
+
+1. Read `TODO/reports/taskNN.md`, then delegate the diff read to a
+   `feature-dev:code-reviewer` agent (`run_in_background: false`) pointed at the
+   worktree with `git diff <base>...<branch>` and the task file as the spec —
+   **the diff must land in the reviewer's context, not the head's**, or three
+   reviews will blow the 15% budget.
+2. Re-run the task's verify commands in that worktree; trust the output over the
+   report's claims.
+3. Verdict, reported to the user either way:
+   - **Pass** → tick `[x]` in `TODO/README.md` with the PR number.
+   - **Rework** → send it to the worker, which still holds full context:
+     `tmux send-keys -t <pane_id> '<specific rework instructions>' Enter`
+     (escape quotes; one send per pane, never interleave). Mark `[~]` and wait
+     for the re-report. If the pane is gone, take the task over in the head only
+     if budget allows — otherwise leave `[~]` with the reason.
+
+**On `PANE GONE`** — inspect the worktree (`git log`, `git status`, its
+`HANDOFF.md`); record what landed, mark `[~]` with a concrete next step.
+
+**On `BATCH COMPLETE`** — final checkpoint: reconcile `TODO/README.md`, offer
+`git worktree remove` for passed tasks (approval-gated), then adjust and either
+spawn the next batch or hand off.
+
+Supervision is **post-commit**: worker commits are approval-gated to the user in
+their own pane, so the head reviews what already landed and drives rework — it
+never gates a worker's commit. `TODO/reports/` is scratch; don't commit it.
+
+**Reconvene** (if the head *did* die, next `/cycle` or `--adjust`): read
+`TODO/reports/`, check each worktree (branch pushed? PR open? HANDOFF.md?), mark
+completed tasks `[x]` with PR numbers, `git worktree remove` completed ones
+(approval-gated), adjust, and continue or spawn the next batch.
 
 ## Context budget
 
