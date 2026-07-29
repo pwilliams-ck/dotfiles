@@ -7,6 +7,7 @@
     "pr": ""
   },
   "permissions": {
+    "defaultMode": "auto",
     "allow": [
       "Bash",
       "Read(~/Notes/work-todo.md)"
@@ -61,8 +62,7 @@
       "Bash(git submodule:*)",
       "Bash(git worktree add:*)",
       "Bash(git worktree remove:*)"
-    ],
-    "defaultMode": "default"
+    ]
   },
   "disableClaudeAiConnectors": true,
   "hooks": {

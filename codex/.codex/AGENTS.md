@@ -1,4 +1,4 @@
-# Global Codex Instructions
+# Global Agent Instructions
 
 ## Working agreement
 
