@@ -1,6 +1,6 @@
 ---
 name: spawn
-description: Open a new interactive Claude Code session in a new tmux window (like prefix+c) of the current tmux session, running the same model as the caller. Seeds it with a HANDOFF.md pickup (if present) and a 15%/20% context-budget rule; optional argument appends the task, e.g. /spawn, /spawn "continue task 07c2".
+description: Open a new interactive Claude Code session in a new tmux window (like prefix+c) of the current tmux session, running the same model as the caller. Seeds it with a handoff pickup (task file's Handoff section, or HANDOFF.md) and a 15%/20% context-budget rule; optional argument appends the task, e.g. /spawn, /spawn "continue task 07c2".
 ---
 
 ## Help
@@ -13,15 +13,15 @@ verbatim and **stop — do not execute the skill**.
 
   Open a new interactive Claude Code session in a new tmux window (like
   prefix+c) of the current tmux session, running the same model as the
-  caller. Seeds it with a HANDOFF.md pickup (if present) and a 15%/20%
+  caller. Seeds it with a handoff pickup (if present) and a 15%/20%
   context-budget rule; optional argument appends the task.
 
-  /spawn                         new session, picks up HANDOFF.md if present
+  /spawn                         new session, picks up the existing handoff
   /spawn "continue task 07c2"    new session seeded with a task
   /spawn --help                  show this help
 
   See also:
-    /handoff       write HANDOFF.md before spawning
+    /handoff       write the handoff before spawning
     /cycle --spawn fan out concurrent tasks in worktrees
 ```
 
@@ -43,16 +43,19 @@ exists. Do not guess the model — use the exact model id this session runs on
 
 The new session always starts with an initial prompt composed of, in order:
 
-1. **Handoff pickup** — only if `HANDOFF.md` exists in `$PWD`
-   (`[ -f HANDOFF.md ]`): `Read HANDOFF.md first and continue from it.`
+1. **Handoff pickup** — resolve where the handoff lives, in this order:
+   - `TODO/README.md` exists → `Read TODO/README.md, follow its Resume pointer
+     to the task file, and continue from that file's Handoff section.`
+   - else `HANDOFF.md` exists in `$PWD` (`[ -f HANDOFF.md ]`) →
+     `Read HANDOFF.md first and continue from it.`
+   - else omit this line.
 2. **Context budget** — always include, verbatim:
 
    > Context budget: if any single prompt run reaches 15% of the context
-   > window, write/refresh HANDOFF.md (init it if missing) so a fresh session
-   > can take over. NEVER exceed 20% total: treat 15% as the signal to gauge
-   > remaining work and wind down — finish or checkpoint the current
-   > sub-task and leave a concrete next step in HANDOFF.md. Never leave a
-   > task or sub-task hanging with no plan there.
+   > window, run /handoff so a fresh session can take over. NEVER exceed 20%
+   > total: treat 15% as the signal to gauge remaining work and wind down —
+   > finish or checkpoint the current sub-task and leave a concrete next step
+   > in the handoff. Never leave a task or sub-task hanging with no plan there.
 
 3. **`$ARGUMENTS`** — if non-empty, appended last as the actual task.
 

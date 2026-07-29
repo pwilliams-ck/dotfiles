@@ -116,6 +116,8 @@ Create at the repo root (plain file writes — no git commands):
 **`TODO/README.md`** — the index, and the shared context that makes every
 tier faster. Contents:
 - Goal (one paragraph) and any locked decisions.
+- A `**Resume:**` line (one line, near the top) pointing at the task file whose
+  `## Handoff` holds live state — `/handoff` maintains it; seed it with task 01.
 - Task table: `id | slug | status ([ ]/[~]/[x]) | deps | PR size est.`
 - **Shared refs:** verified names table (symbol → file:line), commands
   (test/lint/build, with the repo's bug-surfacing flags), doc URLs from
@@ -142,7 +144,14 @@ tier faster. Contents:
 
 ## Done when
 <observable acceptance criteria — behavior, not effort>
+
+## Handoff
+
+**Status:** NOT STARTED
 ```
+
+Every task file carries the `## Handoff` stub — `/handoff` replaces its body
+with live session state, and it is where a zero-context session looks first.
 
 Write every task file for a **zero-context reader**: a sonnet-tier session
 must be able to execute it without re-deriving the plan. Offer (don't run) a
@@ -155,7 +164,7 @@ commit of `TODO/` per the repo's git policy, approval-gated.
 - From ~10%, gauge remaining runway: stop opening new research rounds and
   start writing what's already decided.
 - At 15%: finish the file in progress, mark unwritten tasks as `[ ] stub` in
-  the README, then invoke the **`handoff`** skill — HANDOFF.md must say
+  the README, then invoke the **`handoff`** skill — the handoff must say
   exactly which task files exist and which remain.
 - **Never exceed 20% in one run.** No phase, worker round, or file is worth
   crossing it — hand off instead.

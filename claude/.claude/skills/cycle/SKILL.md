@@ -47,7 +47,7 @@ it never relaxes them.
 
 ```
 /cycle ["goal"]   # seed a new TODO/ and start the first task (goal required first time)
-/cycle            # continue: detail + execute the next ready task (reads HANDOFF.md + TODO/README.md)
+/cycle            # continue: detail + execute the next ready task (reads TODO/README.md's Resume pointer + that task file's Handoff)
 /cycle NN         # jump to a specific task
 /cycle --adjust   # replan only — reorder/resize/add/drop, no execution
 /cycle --spawn [N]# fan out up to N independent tasks in worktrees (auto-sized if omitted, cap 3)
@@ -81,9 +81,11 @@ ask: use `--adjust` to modify, or confirm overwrite.)
 
 ### `TODO/README.md` format
 
-A `# Cycle: <goal>` heading, a task table (`# | Slug | Est | Status | Notes`,
-Notes carries deps), a **Refs** block (test command with bug-surfacing flags,
-build/lint command, load-bearing files), and an append-only **Adjustments log**
+A `# Cycle: <goal>` heading, a `**Resume:**` line pointing at the task file
+whose `## Handoff` holds live state (maintained by `/handoff`), a task table
+(`# | Slug | Est | Status | Notes`, Notes carries deps), a **Refs** block (test
+command with bug-surfacing flags, build/lint command, load-bearing files, links
+to any `TODO/notes/*.md`), and an append-only **Adjustments log**
 (one line per change: what changed, why) — the record of why the plan drifted,
 for the next session or a post-`/clear` you.
 
@@ -101,7 +103,14 @@ Flesh out the **next 1-2 ready tasks** (status `[ ]`, deps satisfied) into
 
 ## Verify / done
 <exact commands + observable acceptance criteria>
+
+## Handoff
+
+**Status:** NOT STARTED
 ```
+
+The `## Handoff` stub is mandatory — `/handoff` replaces its body with live
+state, and it is the first thing a zero-context session reads.
 
 Grep the codebase to confirm names — never plan on assumed names. Detail only
 what you're about to execute; the rest stays as titles in the index.
@@ -136,7 +145,8 @@ After a task completes (or when context budget requires):
 
 ## `--adjust` flow
 
-Skip phases 1-2: read `TODO/README.md`, task files, and `HANDOFF.md`; review
+Skip phases 1-2: read `TODO/README.md`, task files (their `## Handoff`
+sections), and `ISSUES.md`; review
 done / in-flight / remaining; propose plan changes (reorder/resize/add/drop/
 split/merge), show the index diff, one OK, apply; append to the adjustments log.
 
@@ -160,8 +170,9 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    windows. Requires `$TMUX`; if unset, stop and say so. Use the exact model id
    this session runs on. Seed prompt per worker:
    > Read TODO/taskNN-<slug>.md — execute all sub-tasks (approval-gated
-   > commits). When done: push, offer gh pr create, write HANDOFF.md with what
-   > landed and any surprises. Then report to the supervisor — write
+   > commits). When done: push, offer gh pr create, then run /handoff so the
+   > task file's Handoff section carries what landed and any surprises. Then
+   > report to the supervisor — write
    > `TODO/reports/taskNN.md` in the MAIN worktree at `<main-path>` (branch,
    > commits, files touched, verify commands + their output, surprises, PR
    > number if opened), and only once it is fully written and closed:
@@ -205,7 +216,9 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
 5. **Write the interim handoff** — before arming supervision, refresh
    main-worktree `HANDOFF.md`: in-flight tasks (ids, branches, worktree paths,
    pane ids), unstarted tasks, and `Run /cycle --adjust to reconcile after the
-   batch lands.` This is the safety net if the head dies mid-batch.
+   batch lands.` This is the safety net if the head dies mid-batch. Batch state
+   is the one thing that stays in `HANDOFF.md` — it spans tasks; per-task state
+   belongs in each task file's `## Handoff` (written by the worker).
 6. **Arm supervision** — `mkdir -p TODO/reports`, then one persistent `Monitor`
    that emits a line per finished worker *and* per worker that dies without
    reporting (silence must not look like success):
@@ -251,7 +264,7 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
      if budget allows — otherwise leave `[~]` with the reason.
 
 **On `PANE GONE`** — inspect the worktree (`git log`, `git status`, its
-`HANDOFF.md`); record what landed, mark `[~]` with a concrete next step.
+task file's `## Handoff`); record what landed, mark `[~]` with a concrete next step.
 
 **On `BATCH COMPLETE`** — final checkpoint: reconcile `TODO/README.md`, offer
 `git worktree remove` for passed tasks (approval-gated), then adjust and either
@@ -262,7 +275,7 @@ their own pane, so the head reviews what already landed and drives rework — it
 never gates a worker's commit. `TODO/reports/` is scratch; don't commit it.
 
 **Reconvene** (if the head *did* die, next `/cycle` or `--adjust`): read
-`TODO/reports/`, check each worktree (branch pushed? PR open? HANDOFF.md?), mark
+`TODO/reports/`, check each worktree (branch pushed? PR open? task Handoff?), mark
 completed tasks `[x]` with PR numbers, `git worktree remove` completed ones
 (approval-gated), adjust, and continue or spawn the next batch.
 

@@ -51,7 +51,9 @@ relaxes them.
 
 ## Phase 0 — Orient (head)
 
-1. Read `HANDOFF.md` (if present), `TODO/README.md`, and the task file.
+1. Read `TODO/README.md` (its **Resume** pointer first) and the task file —
+   its `## Handoff` section is the live state. Also read `ISSUES.md` and any
+   `TODO/notes/` the task references, plus `HANDOFF.md` if the repo still has one.
 2. Verify deps are done and the task's refs still hold — spot-grep the
    verified names; a stale plan gets amended (below), not silently followed.
 3. Re-check repo state: `git branch --show-current`, `git status --short`.
@@ -124,12 +126,13 @@ Do not roll into the next task in the same run unless the user asks.
 - From ~10%, gauge runway: don't start a sub-task you can't land (worker run
   + review + commit) inside 15%.
 - At 15%: land the current atomic unit if it's within reach, tick its box,
-  then invoke **`handoff`**. HANDOFF.md must pin the exact state: branch,
-  task/sub-task position, staged vs uncommitted files, last test result.
+  then invoke **`handoff`**. The task file's `## Handoff` must pin the exact
+  state: status, branch, sub-task position, staged vs uncommitted files, last
+  test result.
 - **Never exceed 20% in one run.** If landing the unit would cross it, stop
-  where you are, record the precise resume point (`/build NN.M`) in
-  HANDOFF.md, and end the turn. A hanging sub-task with a good handoff beats
-  a finished one with none.
+  where you are, record the precise resume point (`/build NN.M`) in the task
+  file's `## Handoff`, and end the turn. A hanging sub-task with a good handoff
+  beats a finished one with none.
 
 ## When NOT to use
 

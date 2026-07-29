@@ -186,7 +186,7 @@ so the head's monitor fires. Seed prompt:
 ```
 Read issue #<number> (gh issue view <number>). Execute all sub-tasks (approval-gated
 commits). When done: push the branch, offer gh pr create,
-close the issue with a summary comment, then write HANDOFF.md.
+close the issue with a summary comment, then run /handoff.
 Then report to the supervisor: comment on the issue with branch, commits, files
 touched, verify output, surprises, PR number — then, only once that comment is
 posted, touch <main-path>/.cycle-reports/NN.done. If the supervisor sends

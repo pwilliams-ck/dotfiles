@@ -71,10 +71,10 @@ Discover the project's test and build/lint commands first (a Makefile,
 ## 4. Finish the slice
 
 - Update the project's docs (README / changelog / etc.) as the task requires.
-- Write or refresh the handoff wherever the project keeps one (a `HANDOFF.md`,
-  the tracker, or chat if none): what just landed (branch, files), open
-  decisions, gotchas, and the next slice. Assume the next session starts with
-  zero context.
+- Write or refresh the handoff where the project keeps it — the task file's
+  `## Handoff` section if this repo has a `TODO/`, else a `HANDOFF.md`, the
+  tracker, or chat: status, what just landed (branch, files), open decisions,
+  gotchas, and the next slice. Assume the next session starts with zero context.
 - Re-run the full check; show green.
 - Re-verify branch and cwd, propose the final commit. Bundle the doc + handoff
   updates into it — never a standalone handoff- or doc-only commit.
