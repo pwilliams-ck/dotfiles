@@ -49,6 +49,7 @@ Stowed under `omz/`:
 
 - `custom/aliases.zsh` — eza/git/go/npm/docker/fzf aliases.
 - `custom/env.zsh` — `EDITOR`, `MANPAGER`, `FZF_*` defaults.
+- `custom/shift-select.zsh` — shift+motion selects text on the command line, driven by the [Karabiner](#karabiner-elements) `Tab` nav layer.
 
 oh-my-zsh gitignores `custom/`, so these symlinks won't dirty the omz checkout.
 
@@ -114,7 +115,13 @@ Not carried by the repo — keep machine-local:
 
 Unlike `claude/` and `codex/`, this package deploys `~/.config/karabiner` as a **whole-directory** symlink. Karabiner rewrites `karabiner.json` by writing a temp file and renaming it over the original, which would replace a file-level symlink with a regular file and silently un-stow it. Linking the directory instead keeps that rename inside the repo. `automatic_backups/` is gitignored.
 
-Key maps live in `assets/complex_modifications/vim-nav-layers.json`, mirrored into the active profile in `karabiner.json`. Colemak comes from the macOS input source, so Karabiner matches **physical** (QWERTY-position) keys — physical `h j k l` are Colemak `h n e i`.
+Key maps live in `assets/complex_modifications/vim-nav-layers.json`, mirrored into the active profile in `karabiner.json`. Karabiner-Elements holds the config in memory and does **not** reliably notice hand-edits to `karabiner.json`, so after editing it outside the app, force a re-read:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/org.pqrs.service.agent.karabiner_console_user_server
+```
+
+Skipping that leaves the app running the old rules — and its next write can overwrite the file from stale memory. Colemak comes from the macOS input source, so Karabiner matches **physical** (QWERTY-position) keys — physical `h j k l` are Colemak `h n e i`.
 
 Layer 1 — hold `left ctrl`:
 
@@ -123,13 +130,17 @@ Layer 1 — hold `left ctrl`:
 
 Layer 2 — hold `left option`:
 
-| Hold `left option` + | Physical key | Action |
-| --- | --- | --- |
-| `h n e i` | `h j k l` | `left`, `down`, `up`, `right` |
-| `l u` | `u i` | word left / word right (`opt`+arrow) |
-| `j y` | `y o` | line start / line end (`cmd`+arrow) |
+| Hold `left option` + | Physical key | Everywhere | iTerm2 |
+| --- | --- | --- | --- |
+| `h n e i` | `h j k l` | arrows | arrows |
+| `l u` | `u i` | word left / right (`opt`+arrow) | `ctrl`+arrow (zsh `backward-word`/`forward-word`) |
+| `j y` | `y o` | line start / end (`cmd`+arrow) | `home` / `end` |
 
-Add `shift` to any layer-1 or layer-2 key to select instead of move. Both layers match `shift` as an *optional* modifier, so it passes through to the emitted arrow event (`shift`+`opt`+`left` selects a word, `shift`+`cmd`+`right` selects to end of line) — no extra rules needed. Only `left option` is captured; `right option` still types accented characters.
+Only **left** option is captured, so `right option` still types accented characters. Raycast hotkeys have to avoid left-option + these eight letters.
+
+Add `shift` to any layer-1 or layer-2 key to select instead of move. Outside iTerm2 this needs no extra rules: `shift` is matched as an *optional* modifier and passes through to the emitted arrow (`shift`+`opt`+`left` selects a word, `shift`+`cmd`+`right` selects to end of line).
+
+Selecting on the **command line** is different — a terminal has no cursor-selection concept to forward to, so the shifted keys are separate manipulators that emit sequences zsh widgets act on (`omz/.oh-my-zsh/custom/shift-select.zsh`). Word-select sends **right**-option+shift+arrow: iTerm2's left option is set to `Esc+`, and `ctrl`+`shift`+arrow is already taken by `swap-window` in `tmux.conf`.
 
 Also configured: swap `left ctrl` & `caps lock`, and a `vim_mode` layer toggled by tapping `left ctrl` (rules `Vim 1/11`..`11/11`). While `vim_mode` is on it captures bare `h j k l` and shadows layer 2.
 

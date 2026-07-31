@@ -8,6 +8,7 @@
                 "rules": [
                     {
                         "description": "HHKB: tap left_control -> toggle Vim Mode (hold = Control)",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -98,6 +99,7 @@
                     },
                     {
                         "description": "(Vim 1/11) caps_lock -> on, caps_lock, esc, control+[ or any pointing_button -> off",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -343,6 +345,7 @@
                     {
                         "available_since": "12.6.9",
                         "description": "(Vim 2/11) finger on trackpad + any key -> off",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -380,6 +383,7 @@
                     },
                     {
                         "description": "(Vim 3/11) visual mode + h,j,k,l,e,b,0,^,$,gg,G,{,} + d,y,c,x",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -1297,6 +1301,7 @@
                     },
                     {
                         "description": "(Vim 4/11) dd,de,db,d0,d^,d$,dgg,dG,d{,d}",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -1926,6 +1931,7 @@
                     },
                     {
                         "description": "(Vim 5/11) yy,ye,yb,y0,y^,y$,ygg,yG,y{,y}",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -2562,6 +2568,7 @@
                     },
                     {
                         "description": "(Vim 6/11) cc,ce,cb,c0,c^,c$,cgg,cG,c{,c}",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -3318,6 +3325,7 @@
                     },
                     {
                         "description": "(Vim 7/11) x,X,p,P,u,control+r",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -3513,6 +3521,7 @@
                     },
                     {
                         "description": "(Vim 8/11) h,j,k,l (+ control/option/command/shift),e,b,0,^,$,gg,G,{,}",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -4018,6 +4027,7 @@
                     },
                     {
                         "description": "(Vim 9/11) i,I,a,A,o,O",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
@@ -4812,8 +4822,248 @@
                         ]
                     },
                     {
-                        "description": "Layer 2: hold left_option -> nav (add shift to select)",
+                        "description": "Layer 2: left_option+h/j/k/l/u/i/y/o -> arrows, word jumps, line start/end (shift selects)",
                         "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "u",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option",
+                                            "shift"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "left_arrow",
+                                        "modifiers": [
+                                            "right_option",
+                                            "left_shift"
+                                        ]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "i",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option",
+                                            "shift"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "right_arrow",
+                                        "modifiers": [
+                                            "right_option",
+                                            "left_shift"
+                                        ]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "y",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option",
+                                            "shift"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "home",
+                                        "modifiers": [
+                                            "left_shift"
+                                        ]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "o",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option",
+                                            "shift"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "end",
+                                        "modifiers": [
+                                            "left_shift"
+                                        ]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "u",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "left_arrow",
+                                        "modifiers": [
+                                            "left_control"
+                                        ]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "i",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "right_arrow",
+                                        "modifiers": [
+                                            "left_control"
+                                        ]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "y",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "home"
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.googlecode\\.iterm2$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "o",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "end"
+                                    }
+                                ],
+                                "type": "basic"
+                            },
                             {
                                 "from": {
                                     "key_code": "h",
