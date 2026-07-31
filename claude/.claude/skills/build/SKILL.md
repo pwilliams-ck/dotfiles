@@ -114,8 +114,9 @@ When reality diverges — wrong name, missing dep, task too big, new info:
 3. Offer push + `gh pr create` per the repo's git policy — exact commands,
    wait for approval, never merge.
 4. Invoke the **`handoff`** skill (`merged` if the PR merged this session).
-   Recommend `/clear` before the next `/build` — task files are written for
-   zero context on purpose.
+   Its `Next:` block names the exact command to resume with — usually
+   `/clear` then `/build NN`, since task files are written for zero context
+   on purpose. Do not restate it in your own words.
 
 Do not roll into the next task in the same run unless the user asks.
 

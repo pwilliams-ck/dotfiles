@@ -164,8 +164,10 @@ After completing a task:
    to the tracker and update the body (reorder, resize, add/drop tasks;
    create new task issues if adding).
 4. Offer push + `gh pr create` per repo git policy.
-5. **Decision point** — same as `/cycle`: continue, handoff, or suggest
-   `--spawn`.
+5. **Decision point** — same as `/cycle`: route via
+   `~/.claude/skills/shared/next-command.md` and propose exactly one of
+   continue, `--spawn`, or handoff. Recommendations name issue numbers, not
+   task file ids.
 
 ## `--adjust` flow
 

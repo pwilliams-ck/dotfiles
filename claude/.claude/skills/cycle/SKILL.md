@@ -137,11 +137,13 @@ After a task completes (or when context budget requires):
    adjustments log; re-estimate remaining work.
 2. Run the task's verify commands; show green.
 3. Offer push + `gh pr create` per git policy (exact commands, wait, never merge).
-4. **Decision point** — propose one, never silently roll on:
-   - **Continue** — budget allows → back to phase 1.
-   - **Handoff** — context heavy (>10%) or natural stop → invoke `handoff`,
-     recommend `/clear` then `/cycle`.
-   - **Spawn** — several independent tasks ready → suggest `/cycle --spawn`.
+4. **Decision point** — route via `~/.claude/skills/shared/next-command.md`,
+   then propose exactly one; never silently roll on:
+   - **Continue** — budget allows and the routing names a single ready task →
+     back to phase 1.
+   - **Spawn** — the routing names `--spawn` and `$TMUX` is set → fan out.
+   - **Handoff** — context heavy (>10%) or a natural stop → invoke `handoff`,
+     which emits the `Next:` block for the fresh session.
 
 ## `--adjust` flow
 

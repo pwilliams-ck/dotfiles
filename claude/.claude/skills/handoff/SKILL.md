@@ -16,7 +16,8 @@ verbatim and **stop — do not execute the skill**.
   repos with no TODO/. Marks the task COMPLETE / IN PROGRESS / NEEDS
   REVISIT / BLOCKED, replaces the stale handoff rather than appending,
   and routes recurring knowledge out to TODO/notes/ and unowned problems
-  to ISSUES.md.
+  to ISSUES.md. Ends by recommending the one command to run next
+  (e.g. /cycle --spawn 3), picked from the plan's remaining task graph.
 
   /handoff                       handoff into the live task file
   /handoff NN                    force task NN as the target
@@ -145,6 +146,13 @@ Next: <task id / concrete first action>. <one session-specific constraint not de
 
 Rules: no restating global `CLAUDE.md` policy (the next session loads it
 anyway); no narrative; ≤5 lines.
+
+## 6. Recommend the next command
+
+Read `~/.claude/skills/shared/next-command.md` and follow it: pick the one
+command the next session should run, and emit its fenced `Next:` / `Why:`
+block after the paste-ready prompt. The prompt's own `Next:` line must name
+that same command — the two must not disagree.
 
 ## Subcommands (`$ARGUMENTS`)
 

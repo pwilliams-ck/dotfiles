@@ -210,6 +210,14 @@ If --amend: on confirmation, apply the edits; on rejection, drop them.>
 - The decision must be expressible in quality-bar terms. If you can't explain
   why the senior engineer would nod, rethink it.
 
+### Recommend the next command
+
+A decision nobody executes is waste. After the verdict, route through
+`~/.claude/skills/shared/next-command.md` and emit its fenced `Next:` block —
+`/blueprint` when the decision opens up multi-PR work with real unknowns,
+`/cycle` when the shape is already clear, `/slice` when it's one PR. If the
+decision amends an existing plan, name the task the change lands in.
+
 ---
 
 ## When NOT to use this skill

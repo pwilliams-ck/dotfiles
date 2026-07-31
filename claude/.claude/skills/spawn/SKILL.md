@@ -57,7 +57,13 @@ The new session always starts with an initial prompt composed of, in order:
    > finish or checkpoint the current sub-task and leave a concrete next step
    > in the handoff. Never leave a task or sub-task hanging with no plan there.
 
-3. **`$ARGUMENTS`** — if non-empty, appended last as the actual task.
+3. **Next command** — when `$ARGUMENTS` is empty, route via
+   `~/.claude/skills/shared/next-command.md` and append the resulting command
+   as the task (`Start with: /cycle --spawn 3.`). A seeded session that has to
+   re-derive which command to run burns context on a decision this session
+   already has the state for. Omit only when the routing finds no plan store.
+4. **`$ARGUMENTS`** — if non-empty, appended last as the actual task, and it
+   overrides the routed command.
 
 ## 3. Create the window
 

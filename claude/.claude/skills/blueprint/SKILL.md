@@ -157,6 +157,14 @@ Write every task file for a **zero-context reader**: a sonnet-tier session
 must be able to execute it without re-deriving the plan. Offer (don't run) a
 commit of `TODO/` per the repo's git policy, approval-gated.
 
+## Recommend the next command
+
+The plan is not the deliverable — the first execution run is. Close out by
+routing through `~/.claude/skills/shared/next-command.md` and emitting its
+fenced `Next:` block: normally `/clear` then `/build 01`, but `/delib` first if
+the plan left an architecture question open. Name the task id; never stop at a
+bare `/build`.
+
 ## Context budget
 
 - The session runs on 1M-context models; the working budget is **15% used**

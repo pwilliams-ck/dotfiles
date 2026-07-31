@@ -56,7 +56,7 @@ Global Claude Code config. `~/.claude/` is a real directory full of machine stat
 Stowed:
 
 - `AGENTS.md` — global cross-project instructions; `settings.json` — permissions, hooks wiring, status line, plugins; `keybindings.json`; `statusline-command.sh`; `extra-system-prompt.txt`.
-- `commands/` — custom slash commands. `skills/` — `pm` and `slice`.
+- `commands/` — custom slash commands. `skills/` — one dir per skill, each holding a `SKILL.md`: planning (`blueprint`, `cycle`, `cycle-issues`, `delib`), execution (`build`, `slice`, `implementer`), session plumbing (`handoff`, `spawn`), and `pm`. `skills/shared/` is **not** a skill — it holds cross-skill reference docs (`next-command.md`, the next-command routing table) that skills read by path; without a `SKILL.md` the loader ignores it.
 - `hooks/scripts/` — `bash-write-gate.sh` (PreToolUse(Bash) gate), `rename-plans.sh` (Stop hook), and their `common.sh` lib. **Vendored** from the now-archived `review-hooks` repo and wired via the `hooks` block in `settings.json`; edit here = live. The dormant scripts and `patterns/` from that repo were intentionally left behind.
 
 `settings.local.json` is machine-local and deliberately **not** stowed.

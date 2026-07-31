@@ -85,9 +85,14 @@ Discover the project's test and build/lint commands first (a Makefile,
 ## 5. Handoff
 
 Invoke the `handoff` skill (argument `merged` if the PR merged this session,
-none otherwise) — it refreshes the handoff file and prints the paste-ready
-prompt for the next session. **Do not** start the next task. After any PR is
-opened, note its number so the handoff folds it in. Recommend the user run
-`/clear` before the next `/slice` — the handoff is written for zero context on
-purpose; a fresh context implements and reviews better than a compacted one
-carrying this slice's assumptions.
+none otherwise) — it refreshes the handoff file, prints the paste-ready prompt,
+and emits the `Next:` block naming the one command to resume with. **Do not**
+start the next task. After any PR is opened, note its number so the handoff
+folds it in.
+
+That `Next:` block almost always leads with `/clear` — the handoff is written
+for zero context on purpose; a fresh context implements and reviews better than
+a compacted one carrying this slice's assumptions. It may name something other
+than `/slice`: with several related tasks left, per
+`~/.claude/skills/shared/next-command.md`, a `/cycle` is cheaper than slicing
+them one at a time. Let the routing decide; don't override it here.
