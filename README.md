@@ -1,7 +1,7 @@
 # Parker's Dotfiles
 
 Personal macOS config, deployed with [GNU Stow](https://www.gnu.org/software/stow/).
-Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`, `zsh/`, `omz/`) is a Stow package; `stow <pkg>` symlinks it into `$HOME`. The deployed files are symlinks back into the repo, so editing here edits the live config.
+Each top-level dir (`nvim/`, `tmux/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`, `karabiner/`, `zsh/`, `omz/`) is a Stow package; `stow <pkg>` symlinks it into `$HOME`. The deployed files are symlinks back into the repo, so editing here edits the live config.
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@ git clone https://github.com/pwilliams-ck/dotfiles ~/dotfiles
 cd ~/dotfiles
 
 # 3. Deploy packages
-stow nvim tmux scripts markdownlint codex zsh
+stow nvim tmux scripts markdownlint codex karabiner zsh
 ```
 
 `stow -D <pkg>` un-deploys (removes the symlinks).
@@ -110,11 +110,28 @@ Not carried by the repo — keep machine-local:
 
 ## Karabiner-Elements
 
-[Karabiner-Elements](https://karabiner-elements.pqrs.org/) - MacOS keymapping.
+[Karabiner-Elements](https://karabiner-elements.pqrs.org/) - MacOS keymapping. Stowed as the `karabiner/` package; install the app separately, then `stow karabiner`.
 
-- Swap `left ctrl` & `caps lock`.
-- `left ctrl` + `h`, `j`, `k`, `l` --> `left`, `up`, `down`, `right` arrow keys.
-- `left ctrl` + `[` --> `esc`
+Unlike `claude/` and `codex/`, this package deploys `~/.config/karabiner` as a **whole-directory** symlink. Karabiner rewrites `karabiner.json` by writing a temp file and renaming it over the original, which would replace a file-level symlink with a regular file and silently un-stow it. Linking the directory instead keeps that rename inside the repo. `automatic_backups/` is gitignored.
+
+Key maps live in `assets/complex_modifications/vim-nav-layers.json`, mirrored into the active profile in `karabiner.json`. Colemak comes from the macOS input source, so Karabiner matches **physical** (QWERTY-position) keys — physical `h j k l` are Colemak `h n e i`.
+
+Layer 1 — hold `left ctrl`:
+
+- `h n e i` (physical `hjkl`) --> `left`, `down`, `up`, `right`
+- `[` --> `esc`
+
+Layer 2 — hold `left option`:
+
+| Hold `left option` + | Physical key | Action |
+| --- | --- | --- |
+| `h n e i` | `h j k l` | `left`, `down`, `up`, `right` |
+| `l u` | `u i` | word left / word right (`opt`+arrow) |
+| `j y` | `y o` | line start / line end (`cmd`+arrow) |
+
+Add `shift` to any layer-1 or layer-2 key to select instead of move. Both layers match `shift` as an *optional* modifier, so it passes through to the emitted arrow event (`shift`+`opt`+`left` selects a word, `shift`+`cmd`+`right` selects to end of line) — no extra rules needed. Only `left option` is captured; `right option` still types accented characters.
+
+Also configured: swap `left ctrl` & `caps lock`, and a `vim_mode` layer toggled by tapping `left ctrl` (rules `Vim 1/11`..`11/11`). While `vim_mode` is on it captures bare `h j k l` and shadows layer 2.
 
 ## Raycast
 

@@ -13,7 +13,7 @@ This repo grants push and PR access, but **approval-gated**: always show the exa
 
 ## Architecture: Stow package layout
 
-Each top-level directory (`nvim/`, `tmux/`, `zsh/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`) is a **GNU Stow package** whose internal path mirrors where it lands under `$HOME`. For example `nvim/.config/nvim/init.lua` is deployed to `~/.config/nvim/init.lua`.
+Each top-level directory (`nvim/`, `tmux/`, `zsh/`, `scripts/`, `markdownlint/`, `claude/`, `codex/`, `karabiner/`) is a **GNU Stow package** whose internal path mirrors where it lands under `$HOME`. For example `nvim/.config/nvim/init.lua` is deployed to `~/.config/nvim/init.lua`.
 
 Deploy by symlinking a package into `$HOME` from the repo root:
 
@@ -25,6 +25,7 @@ stow scripts      # symlinks scripts/.local/bin/*    -> ~/.local/bin/
 stow markdownlint # symlinks markdownlint/.markdownlint.json -> ~/.markdownlint.json
 stow claude       # symlinks claude/.claude/*        -> ~/.claude/
 stow codex        # symlinks codex/.codex/*         -> ~/.codex/
+stow karabiner    # symlinks karabiner/.config/karabiner -> ~/.config/karabiner
 stow -D nvim      # un-deploy (remove symlinks)
 ```
 
@@ -70,3 +71,17 @@ Stowed:
 - `config.toml` — model, TUI, trusted projects, marketplace, plugin, and feature settings.
 - `AGENTS.md` — global Codex instructions.
 - `rules/default.rules` — approved command prefix rules.
+
+## Karabiner-Elements (`karabiner/.config/karabiner/`)
+
+The **only** package Stow deploys as a whole-directory symlink rather than folding. Karabiner saves `karabiner.json` by writing a temp file and renaming it over the target, which replaces a file-level symlink with a regular file and silently un-stows it; linking the directory keeps that rename inside the repo. Consequence: everything Karabiner writes lands here, so `automatic_backups/` is gitignored via `karabiner/.config/karabiner/.gitignore`.
+
+`karabiner.json` is **machine-written** — the app rewrites the whole file (sorted keys, 4-space indent) on any UI change, and `profiles[].devices` holds per-machine vendor/product IDs. Edit rules by patching the JSON with a script or through the UI, never by hand-formatting; expect churn in unrelated keys.
+
+Rules are duplicated by design: the durable source is `assets/complex_modifications/vim-nav-layers.json` (what the UI's "Add rule" browser reads), and the active copy lives in `profiles[0].complex_modifications.rules`. Change both, or the next reinstall silently drops the mapping. Order matters — Karabiner takes the **first** matching manipulator.
+
+Colemak is a macOS input source, not keyboard firmware, so Karabiner sees **physical** QWERTY key codes: write `h`/`j`/`k`/`l` to mean the keys that type Colemak `h`/`n`/`e`/`i`.
+
+Selection variants come from `from.modifiers.optional: ["shift", "caps_lock"]` — Karabiner forwards optional modifiers to the `to` event, so one manipulator yields both the move and the `shift` select. Don't add mirrored `shift` manipulators.
+
+The `Vim 1/11`..`11/11` rules are a third-party `vim_mode` layer gated on the `vim_mode` variable (toggled by tapping `left_control`). They precede the `Layer 1`/`Layer 2` rules and capture bare `h j k l` while active.
