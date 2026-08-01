@@ -5237,6 +5237,53 @@
                                 "type": "basic"
                             }
                         ]
+                    },
+                    {
+                        "description": "Layer 2: left_option+; -> fn+f1 (temp desktop view), left_option+' -> caps_lock",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "semicolon",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "f1",
+                                        "modifiers": [
+                                            "fn"
+                                        ]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "quote",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "left_option"
+                                        ],
+                                        "optional": [
+                                            "caps_lock"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "hold_down_milliseconds": 100,
+                                        "key_code": "caps_lock"
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
                     }
                 ]
             },
@@ -5406,7 +5453,7 @@
                             },
                             "to": [
                                 {
-                                    "key_code": "caps_lock"
+                                    "key_code": "left_option"
                                 }
                             ]
                         }
@@ -5497,7 +5544,7 @@
                             },
                             "to": [
                                 {
-                                    "key_code": "caps_lock"
+                                    "key_code": "left_option"
                                 }
                             ]
                         }
@@ -5586,7 +5633,7 @@
                             },
                             "to": [
                                 {
-                                    "key_code": "caps_lock"
+                                    "key_code": "left_option"
                                 }
                             ]
                         }
@@ -5635,7 +5682,7 @@
                             },
                             "to": [
                                 {
-                                    "key_code": "caps_lock"
+                                    "key_code": "left_option"
                                 }
                             ]
                         }

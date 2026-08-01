@@ -135,6 +135,8 @@ Layer 2 — hold `left option`:
 | `h n e i` | `h j k l` | arrows | arrows |
 | `l u` | `u i` | word left / right (`opt`+arrow) | `ctrl`+arrow (zsh `backward-word`/`forward-word`) |
 | `j y` | `y o` | line start / end (`cmd`+arrow) | `home` / `end` |
+| `o` | `;` | `fn`+`f1` (temp desktop view) | same |
+| `'` | `'` | `caps lock` | same |
 
 Only **left** option is captured, so `right option` still types accented characters. Raycast hotkeys have to avoid left-option + these eight letters.
 
@@ -142,7 +144,11 @@ Add `shift` to any layer-1 or layer-2 key to select instead of move. Outside iTe
 
 Selecting on the **command line** is different — a terminal has no cursor-selection concept to forward to, so the shifted keys are separate manipulators that emit sequences zsh widgets act on (`omz/.oh-my-zsh/custom/shift-select.zsh`). Word-select sends **right**-option+shift+arrow: iTerm2's left option is set to `Esc+`, and `ctrl`+`shift`+arrow is already taken by `swap-window` in `tmux.conf`.
 
-Also configured: swap `left ctrl` & `caps lock`, and a `vim_mode` layer toggled by tapping `left ctrl` (rules `Vim 1/11`..`11/11`). While `vim_mode` is on it captures bare `h j k l` and shadows layer 2.
+Also configured, per device: `caps lock` --> `left ctrl`, and the physical `left ctrl` --> `left option`, making an oversized layer-2 key out of the bottom-left corner. That includes the Raycast and emoji hotkeys bound to left-option combos, since they see an ordinary `left option`. `caps lock` itself therefore has no key of its own and lives on layer 2 (`left option`+`'`) instead.
+
+Two emission quirks are baked into those two bindings. A bare `f1` in a `to` event still goes through the macOS media-key layer and dims the screen, so the temp-desktop key emits `fn`+`f1` — the same event the physical `fn`+`F1` produces. And macOS ignores a `caps lock` press that is too brief, so that binding carries `hold_down_milliseconds: 100`.
+
+The `vim_mode` layer (rules `Vim 1/11`..`11/11`, toggled by tapping `left ctrl`) is present but **disabled**; while on it captures bare `h j k l` and shadows layer 2.
 
 ## Raycast
 
