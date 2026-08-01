@@ -1,0 +1,140 @@
+/*
+ * Overrides appended to markdown-preview.nvim's bundled markdown.css to match
+ * github.com's rendered markdown. Generated into the cache by lua/plugins/markdown.lua;
+ * upstream stays the base layer, so only the deltas live here.
+ */
+
+/* github.com renders a 914px text column; add .markdown-body's 32px padding and 1px border */
+#page-ctn {
+  max-width: 980px;
+}
+
+/* Primer light */
+:root {
+  --color-text-primary: #1f2328;
+  --color-text-tertiary: #59636e;
+  --color-text-link: #0969da;
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f6f8fa;
+  --color-bg-tertiary: #f6f8fa;
+  --color-border-primary: #d1d9e0;
+  --color-border-secondary: #d1d9e0;
+  --color-border-tertiary: #d1d9e0;
+  --color-kbd-foreground: #59636e;
+  --color-markdown-blockquote-border: #d1d9e0;
+  --color-markdown-table-border: #d1d9e0;
+  --color-markdown-table-tr-border: #d1d9e0;
+  --color-markdown-code-bg: #afb8c133;
+}
+
+/* Primer dark */
+[data-theme="dark"] {
+  --color-text-primary: #e6edf3;
+  --color-text-tertiary: #9198a1;
+  --color-text-link: #4493f8;
+  --color-bg-primary: #0d1117;
+  --color-bg-secondary: #151b23;
+  --color-bg-tertiary: #151b23;
+  --color-border-primary: #3d444d;
+  --color-border-secondary: #3d444d;
+  --color-border-tertiary: #3d444d;
+  --color-kbd-foreground: #9198a1;
+  --color-markdown-blockquote-border: #3d444d;
+  --color-markdown-table-border: #3d444d;
+  --color-markdown-table-tr-border: #3d444d;
+  --color-markdown-code-bg: #656c7633;
+}
+
+.markdown-body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 32px;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+
+.markdown-body h4 {
+  font-size: 1em;
+}
+
+.markdown-body h5 {
+  font-size: 0.875em;
+}
+
+.markdown-body h6 {
+  font-size: 0.85em;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+.markdown-body code,
+.markdown-body tt {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  padding: 0.2em 0.4em;
+  font-size: 85%;
+  white-space: break-spaces;
+  border-radius: 6px;
+}
+
+/* Upstream pads inline code with nbsp pseudo-elements; GitHub uses real padding */
+.markdown-body code::before,
+.markdown-body code::after {
+  content: none;
+  letter-spacing: normal;
+}
+
+.markdown-body pre {
+  padding: 16px;
+  line-height: 1.45;
+  border-radius: 6px;
+}
+
+.markdown-body pre code {
+  padding: 0;
+  white-space: pre;
+  background-color: transparent;
+  border-radius: 0;
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  border-left: 0.25em solid var(--color-markdown-blockquote-border);
+}
+
+.markdown-body hr {
+  height: 0.25em;
+  margin: 24px 0;
+  background-color: var(--color-border-primary);
+  border: 0;
+}
