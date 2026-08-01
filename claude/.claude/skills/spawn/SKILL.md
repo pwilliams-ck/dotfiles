@@ -1,6 +1,6 @@
 ---
 name: spawn
-description: Open a new interactive Claude Code session in a new tmux window (like prefix+c) of the current tmux session, running the same model as the caller. Seeds it with a handoff pickup (task file's Handoff section, or HANDOFF.md) and a 15%/20% context-budget rule; optional argument appends the task, e.g. /spawn, /spawn "continue task 07c2".
+description: Open a new interactive Claude Code session in a new tmux window (like prefix+c) of the current tmux session, running Opus 4.6 (1M) at max effort. Seeds it with a handoff pickup (task file's Handoff section, or HANDOFF.md) and a 15%/20% context-budget rule; optional argument appends the task, e.g. /spawn, /spawn "continue task 07c2".
 ---
 
 ## Help
@@ -9,11 +9,11 @@ If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
 verbatim and **stop — do not execute the skill**.
 
 ```
-/spawn — open a new Claude Code session in a new tmux window (same model)
+/spawn — open a new Claude Code session in a new tmux window (Opus 4.6 1M, max effort)
 
   Open a new interactive Claude Code session in a new tmux window (like
-  prefix+c) of the current tmux session, running the same model as the
-  caller. Seeds it with a handoff pickup (if present) and a 15%/20%
+  prefix+c) of the current tmux session, running Opus 4.6 (1M) at max
+  effort. Seeds it with a handoff pickup (if present) and a 15%/20%
   context-budget rule; optional argument appends the task.
 
   /spawn                         new session, picks up the existing handoff
@@ -29,10 +29,7 @@ verbatim and **stop — do not execute the skill**.
 
 # Spawn a sibling Claude Code session
 
-Open a fresh interactive `claude` in a **new window of the current tmux
-session**, on the **same model** as this session, then confirm the window
-exists. Do not guess the model — use the exact model id this session runs on
-(it is stated in your system prompt, e.g. `claude-fable-5`).
+Open a fresh interactive `claude` in a **new window of the current tmux session**, running `claude-opus-4-6-[1m]` at `--effort max`, then confirm the window exists.
 
 ## 1. Preconditions
 
@@ -71,7 +68,7 @@ One command; `-P -F` prints the new window's target for verification:
 
 ```bash
 tmux new-window -P -F '#{session_name}:#{window_index}' -n cc -c "$PWD" \
-  "claude --model <model-id> '<seed prompt>'"
+  "claude --model 'claude-opus-4-6-[1m]' --effort max '<seed prompt>'"
 ```
 
 - Like `prefix + c`, this switches focus to the new window — that is expected;

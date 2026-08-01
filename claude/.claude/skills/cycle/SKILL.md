@@ -59,10 +59,10 @@ it never relaxes them.
 | Role | Model | Job |
 |------|-------|-----|
 | Head | session model | Plan, sequence, review, own git and TODO/. |
-| Implementation worker | `model: "opus"` | Execute one sub-task: implement + test. |
-| Lookups | default | Greps, quick doc checks. |
+| Implementation worker | `claude-opus-4-6-[1m]`, `--effort max` | Execute one sub-task in a tmux pane. |
+| Lookups | default | Greps, quick doc checks via `Agent()`. |
 
-Every `Agent()` call passes `model:` explicitly. **Never spawn Fable subagents.**
+Implementation workers run as `claude` CLI sessions in a split pane (see phase 2). Lookups use `Agent()` with default model. **Never spawn Fable subagents.**
 
 ## Phase 0 — Seed (first invocation with a goal)
 
@@ -145,10 +145,16 @@ For each sub-task:
   estimate: stop, propose the `TODO/` edit in ≤3 lines (`taskNN: <what changes
   and why>`), get one OK. Never deviate silently and leave `TODO/` stale.
 
-For larger sub-tasks, delegate to an implementation worker (`model: "opus"`);
-brief it per `~/.claude/skills/implementer/SKILL.md` §5, where the boundary is
-the task's `Owns` globs. Review the diff before committing; rework via
-`SendMessage`, don't respawn.
+For larger sub-tasks, spawn an implementation worker in a split pane — same mechanism as `--spawn` but for one task:
+
+```bash
+mkdir -p TODO/reports
+git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
+pane=$(tmux split-window -P -F '#{pane_id}' -c "$PWD" \
+  "claude --model 'claude-opus-4-6-[1m]' --effort max $git_allow '<seed>'")
+```
+
+Brief the seed per `~/.claude/skills/implementer/SKILL.md` §5, scoped to the task's `Owns` globs. Instruct the worker to write `TODO/reports/taskNN.md` and `touch TODO/reports/taskNN.done` on completion. Monitor for `.done`, then review and rework per the `--spawn` flow's **On each `REPORT`** section. Rework goes via `tmux send-keys -t "$pane"`, not `SendMessage`.
 
 ## Phase 3 — Checkpoint
 
