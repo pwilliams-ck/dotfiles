@@ -1,6 +1,6 @@
 ---
 name: cycle
-description: Incremental plan-and-execute loop for medium-to-small repos. Seeds a lightweight TODO/ index, then iterates — detail the next 1-2 tasks just-in-time, execute, checkpoint the index, adjust, repeat. --spawn fans out independent tasks concurrently in git worktrees (auto-sized from the task graph, default cap 3). Unlike /blueprint, planning is rolling — no big upfront research phase. e.g. /cycle "add user preferences API", /cycle (continue next), /cycle 03 (specific task), /cycle --adjust (replan only), /cycle --spawn (concurrent fan-out in worktrees).
+description: Plan-and-execute loop for multi-task work in any repo. Seeds a lightweight TODO/ index, then iterates — detail the next 1-2 tasks just-in-time, execute, checkpoint the index, adjust, repeat. Planning is rolling: no big upfront research phase, so the plan is never further ahead of reality than the next task or two. Tasks declare the file globs they own; --spawn fans out tasks with disjoint ownership concurrently in git worktrees (auto-sized from the task graph, default cap 3). e.g. /cycle "add user preferences API", /cycle (continue next), /cycle 03 (specific task), /cycle --adjust (replan only), /cycle --spawn (concurrent fan-out in worktrees).
 ---
 
 ## Help
@@ -11,12 +11,12 @@ verbatim and **stop — do not execute the skill**.
 ```
 /cycle — rolling plan-and-execute loop with a lightweight TODO/ index
 
-  Incremental plan-and-execute loop for medium-to-small repos. Seeds a
-  lightweight TODO/ index, then iterates — detail the next 1-2 tasks
-  just-in-time, execute, checkpoint the index, adjust, repeat.
-  --spawn fans out independent tasks concurrently in git worktrees
-  (auto-sized from the task graph, default cap 3). Unlike /blueprint,
-  planning is rolling — no big upfront research phase.
+  Plan-and-execute loop for multi-task work. Seeds a lightweight TODO/
+  index, then iterates — detail the next 1-2 tasks just-in-time, execute,
+  checkpoint the index, adjust, repeat. Planning is rolling, so the plan
+  never runs further ahead of reality than a task or two. Tasks declare
+  the file globs they own; --spawn fans out tasks with disjoint ownership
+  concurrently in git worktrees (auto-sized, default cap 3).
 
   /cycle "goal"                  seed a new cycle
   /cycle                         continue next ready task
@@ -27,7 +27,7 @@ verbatim and **stop — do not execute the skill**.
 
   See also:
     /cycle-issues  same workflow backed by GitHub issues
-    /blueprint     heavier upfront planning alternative
+    /delib         settle an architecture question before planning
     /handoff       invoked at end of session
 ```
 
@@ -35,10 +35,11 @@ verbatim and **stop — do not execute the skill**.
 
 # Cycle (`/cycle`)
 
-Incremental plan-and-execute loop. The **head model** (this session) owns the
-plan, sequences work, and runs git (approval-gated). Planning is **rolling** —
-detail just enough to execute the next slice, learn, adjust, repeat. For
-medium-to-small repos where a full `/blueprint` research phase is overkill.
+Plan-and-execute loop for multi-task work. The **head model** (this session) owns
+the plan, sequences work, and runs git (approval-gated). Planning is **rolling** —
+detail just enough to execute the next slice, learn, adjust, repeat. A plan
+written far in advance of the work is a plan written before the facts; detailing
+one task at a time keeps it answerable to what the last task taught.
 
 All repo rules — `CLAUDE.md`, git policy — apply. This skill sequences them;
 it never relaxes them.
@@ -68,23 +69,32 @@ Every `Agent()` call passes `model:` explicitly. **Never spawn Fable subagents.*
 Only when `TODO/` does not exist. (If it does and a goal was passed, stop and
 ask: use `--adjust` to modify, or confirm overwrite.)
 
-1. Read `CLAUDE.md` and docs it references; quick scan of repo structure.
-   Lighter than `/blueprint` — no research workers unless a genuine unknown
-   blocks decomposition.
+1. Read `CLAUDE.md` and docs it references; quick scan of repo structure. Keep
+   this pass cheap — no research workers unless a genuine unknown blocks
+   decomposition.
 2. State the goal in one sentence.
-3. Decompose into a **rough ordered task list** — title + size (`~S` ≤100,
-   `~M` 100-300, `~L` 300+ lines) per task — rough estimates, not caps. No
-   sub-tasks yet (that's phase 1).
-4. **Checkpoint:** show the list, get one OK.
-5. Write `TODO/README.md` (index below) — no `taskNN-*.md` files yet. Offer a
+3. Decompose into a **rough ordered task list** — per task: title, size (`~S`
+   ≤100, `~M` 100-300, `~L` 300+ lines), and `Owns:` — the glob set that task
+   is allowed to write. Rough estimates, not caps. No sub-tasks yet (that's
+   phase 1).
+4. **Seek seams.** Prefer a decomposition whose tasks own disjoint directories,
+   even at the cost of one extra task — disjoint ownership is what makes
+   `--spawn` safe, and discovering independence after the fact only ever finds
+   unrelated scraps. Stop when the split stops being real: a task carved out
+   for parallelism that then needs cross-task coordination (a shared signature,
+   one migration, one task's output as another's input) is worse than one
+   sequential task. Overlapping globs are legal — they just serialize.
+5. **Checkpoint:** show the list, get one OK.
+6. Write `TODO/README.md` (index below) — no `taskNN-*.md` files yet. Offer a
    commit of `TODO/` per git policy. Fall through to phase 1.
 
 ### `TODO/README.md` format
 
 A `# Cycle: <goal>` heading, a `**Resume:**` line pointing at the task file
 whose `## Handoff` holds live state (maintained by `/handoff`), a task table
-(`# | Slug | Est | Status | Notes`, Notes carries deps), a **Refs** block (test
-command with bug-surfacing flags, build/lint command, load-bearing files, links
+(`# | Slug | Est | Owns | Status | Notes`, Owns carries the write-scope globs and
+Notes carries deps), a **Refs** block (test command with bug-surfacing flags,
+build/lint command, load-bearing files, links
 to any `TODO/notes/*.md`), and an append-only **Adjustments log**
 (one line per change: what changed, why) — the record of why the plan drifted,
 for the next session or a post-`/clear` you.
@@ -92,11 +102,13 @@ for the next session or a post-`/clear` you.
 ## Phase 1 — Detail (each iteration)
 
 Flesh out the **next 1-2 ready tasks** (status `[ ]`, deps satisfied) into
-`TODO/taskNN-<slug>.md` — same format as `/blueprint`:
+`TODO/taskNN-<slug>.md`, written for a **zero-context reader** — a fresh session
+must be able to execute it without re-deriving the plan:
 
 ```markdown
 # taskNN: <slug>
 **Goal:** <one sentence>  **Branch:** <type>/<kebab>  **Deps:** <ids or none>
+**Owns:** <write-scope globs>
 
 ## Sub-tasks
 - [ ] 1. <behavior> — test: <what the failing test proves>; files: <list>
@@ -112,6 +124,11 @@ Flesh out the **next 1-2 ready tasks** (status `[ ]`, deps satisfied) into
 The `## Handoff` stub is mandatory — `/handoff` replaces its body with live
 state, and it is the first thing a zero-context session reads.
 
+`Owns:` is the task's write scope: a file outside it is out of scope — record it
+in the report or handoff, don't edit it. It is **advisory** — nothing enforces
+it at write time, and the task file is the only copy, so a mid-batch replan
+changes it for everyone reading. The review step asserts the diff against it.
+
 Grep the codebase to confirm names — never plan on assumed names. Detail only
 what you're about to execute; the rest stays as titles in the index.
 
@@ -124,8 +141,13 @@ For each sub-task:
 - **Commit per sub-task** — re-verify branch + cwd, propose the atomic commit
   (approval-gated); tick the sub-task box in the same commit.
 
-For larger sub-tasks, delegate to an implementation worker (`model: "opus"`)
-with a self-contained brief; review the diff before committing; rework via
+- **Amend on divergence** — a wrong name, a missing dep, a task twice its
+  estimate: stop, propose the `TODO/` edit in ≤3 lines (`taskNN: <what changes
+  and why>`), get one OK. Never deviate silently and leave `TODO/` stale.
+
+For larger sub-tasks, delegate to an implementation worker (`model: "opus"`);
+brief it per `~/.claude/skills/implementer/SKILL.md` §5, where the boundary is
+the task's `Owns` globs. Review the diff before committing; rework via
 `SendMessage`, don't respawn.
 
 ## Phase 3 — Checkpoint
@@ -158,11 +180,14 @@ The head stays in the main worktree — it plans the batch, creates worktrees,
 spawns sessions, then **supervises**: reviews each worker's work as it reports
 in, and sends rework back down. It does **not** execute tasks during a spawn.
 
-1. **Size the batch.** Ready tasks (`[ ]`, deps `[x]`) that are mutually
-   independent — no explicit dep *and* no file-list overlap (tasks touching the
-   same files go in separate batches). Batch = `min(independent_ready, cap)`;
-   cap = N or 3; prefer fewer for `~L`, more for `~S`. Report the pick
-   (`Spawning 3: tasks 02,04,05; deferred 03,06 (deps/overlap)`) and get one OK.
+1. **Size the batch.** Ready tasks (`[ ]`, deps `[x]`) that declare no dep on
+   each other *and* whose `Owns` glob sets are pairwise disjoint. Compare the
+   declared globs, not guesses about the diff: `src/api/**` and
+   `src/api/auth/**` overlap, so those two tasks go in separate batches. A task
+   with no `Owns` line is not batchable — give it one first.
+   Batch = `min(disjoint_ready, cap)`; cap = N or 3; prefer fewer for `~L`,
+   more for `~S`. Report the pick (`Spawning 3: tasks 02,04,05; deferred 03
+   (dep on 02), 06 (Owns overlaps 04)`) and get one OK.
 2. **Detail the batch.** Phase 1 for each task; commit `TODO/` (approval-gated)
    so worktrees branch from a state that includes the task files.
 3. **Create worktrees** from current HEAD, one per task, and verify each:
@@ -255,11 +280,18 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    worktree with `git diff <base>...<branch>` and the task file as the spec —
    **the diff must land in the reviewer's context, not the head's**, or three
    reviews will blow the 15% budget.
-2. Re-run the task's verify commands in that worktree; trust the output over the
+2. Assert the write scope — `git diff --name-only <base>...<branch>` against the
+   task's `Owns` globs. Any file outside them is a rework trigger even when the
+   code is right: it voids the disjointness the batch was sized on and may have
+   landed under a sibling worker's feet.
+3. Re-run the task's verify commands in that worktree; trust the output over the
    report's claims.
-3. Verdict, reported to the user either way:
+4. Verdict, reported to the user either way:
    - **Pass** → tick `[x]` in `TODO/README.md` with the PR number.
-   - **Rework** → send it to the worker, which still holds full context:
+   - **Rework** → send it to the worker, which still holds full context. Check
+     the target first — the `pane_id` must be one from the batch mapping and
+     `tmux display-message -p -t <pane_id> '#{pane_dead}'` must print `0`;
+     anything else means treat the task as `PANE GONE`, don't send:
      `tmux send-keys -t <pane_id> '<specific rework instructions>' Enter`
      (escape quotes; one send per pane, never interleave). Mark `[~]` and wait
      for the re-report. If the pane is gone, take the task over in the head only
@@ -290,7 +322,6 @@ exceed 20%** — a checkpoint with a good handoff beats a finished task with non
 
 ## When NOT to use
 
-- Many unknowns needing deep upfront research → `/blueprint` then `/build`.
 - Single-PR-sized work → `/slice`.
 - Architecture decisions → `/delib` first, feed the result in.
-- Already have a full `TODO/` from `/blueprint` → `/build`.
+- Tasks belong in GitHub issues rather than files → `/cycle-issues`.

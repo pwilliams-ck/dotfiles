@@ -215,7 +215,7 @@ implementation.
 
 # §5 — Agent briefing & supervision
 
-The orchestrating skill (`/cycle`, `/build`) owns mechanics — model tiers,
+The orchestrating skill (`/cycle`, `/slice`) owns mechanics — model tiers,
 worktrees, parallelism. This section is what makes a spawned agent produce
 code at the owner's level.
 

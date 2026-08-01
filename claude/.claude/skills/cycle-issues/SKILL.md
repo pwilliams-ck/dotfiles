@@ -24,7 +24,7 @@ verbatim and **stop — do not execute the skill**.
 
   See also:
     /cycle         same workflow backed by TODO/ files
-    /blueprint     heavier upfront planning alternative
+    /delib         settle an architecture question before planning
     /handoff       invoked at end of session
 ```
 
@@ -69,8 +69,8 @@ One issue per cycle. Title: `cycle: <goal>`. Body:
 ```markdown
 ## Tasks
 
-- [ ] #<issue> — `<slug>` ~M
-- [ ] #<issue> — `<slug>` ~S (depends on #<issue>)
+- [ ] #<issue> — `<slug>` ~M — owns `<globs>`
+- [ ] #<issue> — `<slug>` ~S — owns `<globs>` (depends on #<issue>)
 - ...
 
 ## Refs
@@ -91,6 +91,7 @@ One issue per task. Title: `<slug>`. Body:
 
 ```markdown
 **Goal:** <one sentence>  **Branch:** <type>/<kebab>  **Deps:** #<issue> or none
+**Owns:** <write-scope globs — `--spawn` batches issues whose globs are disjoint>
 Tracker: #<tracker-number>
 
 ## Sub-tasks
@@ -110,7 +111,8 @@ Label: `cycle-task`. Assign to self if `gh` auth allows.
 
 1. Read repo `CLAUDE.md` and scan the codebase (same lightweight pass as
    `/cycle`).
-2. State the goal; decompose into rough task list with size estimates.
+2. State the goal; decompose into a rough task list with size estimates and
+   `Owns` globs — seek seams, same rule as `/cycle` phase 0.
 3. **Checkpoint:** show the task list, get one OK.
 4. Create the task issues (title + one-line body only — no sub-tasks yet):
 
@@ -216,5 +218,5 @@ resume point.
 
 - Repo doesn't use GitHub (no `gh` CLI configured) — use `/cycle`.
 - Tasks are too small to warrant individual issues — use `/cycle`.
-- Need deep upfront research — `/blueprint` then `/build`.
 - Single-PR work — `/slice`.
+- Architecture decisions — `/delib` first, feed the result in.

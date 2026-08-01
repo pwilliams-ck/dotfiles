@@ -24,8 +24,7 @@ verbatim and **stop — do not execute the skill**.
   See also:
     /handoff       invoked at end of each slice
     /delib         deliberate a decision before implementing
-    /build         multi-task execution from a /blueprint plan
-    /cycle         rolling plan-and-execute alternative
+    /cycle         rolling plan-and-execute alternative for multi-task work
 ```
 
 ---

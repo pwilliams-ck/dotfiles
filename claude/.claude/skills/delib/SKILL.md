@@ -26,7 +26,6 @@ verbatim and **stop — do not execute the skill**.
   /delib --help                  show this help
 
   See also:
-    /blueprint     plan a feature from a /delib decision
     /slice         implement directly from a /delib decision
     /cycle         plan + execute incrementally
 ```
@@ -214,8 +213,7 @@ If --amend: on confirmation, apply the edits; on rejection, drop them.>
 
 A decision nobody executes is waste. After the verdict, route through
 `~/.claude/skills/shared/next-command.md` and emit its fenced `Next:` block —
-`/blueprint` when the decision opens up multi-PR work with real unknowns,
-`/cycle` when the shape is already clear, `/slice` when it's one PR. If the
+`/cycle` when the decision opens up multi-PR work, `/slice` when it's one PR. If the
 decision amends an existing plan, name the task the change lands in.
 
 ---

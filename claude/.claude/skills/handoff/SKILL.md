@@ -28,7 +28,6 @@ verbatim and **stop — do not execute the skill**.
   See also:
     /spawn         open a new session that picks up the handoff
     /slice         invokes /handoff at end of each slice
-    /build         recommends /handoff between tasks
     /cycle         invokes /handoff at end of session
 ```
 
@@ -131,8 +130,8 @@ than adding a second one, and flip `Status:` when a session fixes it.
 note, not a gotcha. Environment quirks, how to run a thing locally, an
 upstream API's real shape, a debugging recipe. Write it, then reference it from
 the task file (`see TODO/notes/keycloak-realm-import.md`) rather than restating
-it. Link the note from `TODO/README.md`'s Refs block so `/blueprint` and
-`/build` workers pick it up.
+it. Link the note from `TODO/README.md`'s Refs block so `/cycle` workers pick it
+up.
 
 ## 5. Print the paste-ready prompt
 
