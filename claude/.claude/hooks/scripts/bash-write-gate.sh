@@ -102,8 +102,9 @@ echo "$cmd" | grep -Eq '\bshred\b'                           && emit deny "shred
 # write subcommand positionally (after `git [opts]`) and force the prompt.
 # Runs after every deny backstop so denies keep winning; stash list/show
 # stays read-only (allowed below).
-if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(add|commit|push|switch|checkout|restore|pull|reset|cherry-pick|revert|rm|mv|am|apply|submodule|worktree|stash)\b' \
-   && ! echo "$cmd" | grep -Eq '\bstash[[:space:]]+(list|show)\b'; then
+if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(add|commit|push|switch|checkout|restore|pull|reset|cherry-pick|revert|rm|mv|am|apply|submodule|worktree|stash|remote)\b' \
+   && ! echo "$cmd" | grep -Eq '\bstash[[:space:]]+(list|show)\b' \
+   && ! echo "$cmd" | grep -Eq '\bremote([[:space:]]+(-v|show|get-url)|[[:space:]]*$)'; then
   emit ask "Write git command — needs per-command approval."
 fi
 
@@ -131,7 +132,7 @@ if [[ "$first" == "git" ]]; then
       [[ "$is_simple" == 1 ]] && emit allow "Read-only git command." ;;
     branch)  echo "$cmd" | grep -Eq '\-(d|D|m|M|-delete|-force)\b' || { [[ "$is_simple" == 1 ]] && emit allow "git branch listing."; } ;;
     tag)     echo "$cmd" | grep -Eq 'tag[[:space:]]+(-l|--list|-n|$)' && [[ "$is_simple" == 1 ]] && emit allow "git tag listing." ;;
-    remote)  echo "$cmd" | grep -Eq 'remote([[:space:]]+(-v|show))?[[:space:]]*$' && [[ "$is_simple" == 1 ]] && emit allow "git remote (read)." ;;
+    remote)  echo "$cmd" | grep -Eq 'remote([[:space:]]+(-v|show|get-url[^;&|]*))?[[:space:]]*$' && [[ "$is_simple" == 1 ]] && emit allow "git remote (read)." ;;
     config)  echo "$cmd" | grep -Eq 'config[[:space:]].*(--get|--list|-l|(^| )get( |$))' && [[ "$is_simple" == 1 ]] && emit allow "git config (read)." ;;
     stash)   echo "$cmd" | grep -Eq 'stash[[:space:]]+(list|show)' && [[ "$is_simple" == 1 ]] && emit allow "git stash (read)." ;;
   esac
