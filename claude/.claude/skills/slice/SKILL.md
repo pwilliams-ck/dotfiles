@@ -1,6 +1,6 @@
 ---
 name: slice
-description: Implement a scoped task as a vertical slice — feature-branch commits, a PR offer, and a handoff note. Works in any repo; honours the project's own CLAUDE.md, git policy, and test/build tooling. Pass the task id or a pointer to its spec as the argument, e.g. /slice 07c2 or /slice "add rate limiting".
+description: Implement a scoped task as a vertical slice — feature-branch commits, a PR offer, and a handoff note. Works in any repo; honours the project's own CLAUDE.md, git policy, and test/build tooling. Pass the task id or a pointer to its spec as the argument, e.g. /slice 07c2 or /slice "add rate limiting". --contest runs one task competitively: a spec agent writes red acceptance tests, two workers implement independently, winner by test count — one linear feature branch either way.
 ---
 
 ## Help
@@ -19,12 +19,14 @@ verbatim and **stop — do not execute the skill**.
 
   /slice "add rate limiting"     implement by description
   /slice 07c2                    implement by task id
+  /slice --contest "task"|NN     one task, 3 agents: spec tests, two builds, winner by test count
   /slice --help                  show this help
 
   See also:
     /handoff       invoked at end of each slice
     /delib         deliberate a decision before implementing
     /cycle         rolling plan-and-execute alternative for multi-task work
+    /cycle --contest NN  same competitive pattern driven by a TODO/ task file
 ```
 
 ---
@@ -35,6 +37,10 @@ Implement the task named in the argument (`$ARGUMENTS`) end to end. **All of the
 current repo's rules — its `CLAUDE.md`, git policy, and conventions — apply.**
 This skill *sequences* them; it does not relax them (git stays approval-gated
 per command).
+
+If `$ARGUMENTS` starts with `--contest`, run §1 on the rest of the argument,
+then jump to the `## --contest flow` at the end of this file — it replaces
+§2-3; §4-5 apply to the winning branch.
 
 ## 1. Scope
 
@@ -95,3 +101,141 @@ a compacted one carrying this slice's assumptions. It may name something other
 than `/slice`: with several related tasks left, per
 `~/.claude/skills/shared/next-command.md`, a `/cycle` is cheaper than slicing
 them one at a time. Let the routing decide; don't override it here.
+
+## `--contest` flow (competitive selection)
+
+One task, three agents, one surviving branch. A spec agent writes acceptance
+tests first; workers A and B implement independently against them; the head
+selects by test count. No agent judges its own work, and the feature still
+lands as a single linear branch of atomic commits: tests first, then the
+winning implementation.
+
+**When to recommend it:** the task is a genuine design fork (two plausible
+architectures — seeing both built beats arguing about them), or it is
+underspecified (the spec agent's test suite forces the acceptance criteria to
+be pinned down before implementation). **Not** for well-specified small tasks:
+two Opus runs on a clear spec produce low-variance output — 2x tokens for a
+coin flip.
+
+1. **Preflight.** Requires `$TMUX` and a runnable test command (do §3's
+   tooling discovery now); if either is missing, stop and say so — selection
+   is mechanical and cannot run without a test runner. Then fix the **task
+   spec** every seed prompt below opens with: if §1 resolved the argument to
+   a task file (`TODO/taskNN-<slug>.md` or wherever this repo keeps specs),
+   the spec is `Read <task-file>` — workers read it themselves, like
+   `/cycle --contest`. Otherwise distil §1's scope pass into a **task brief**
+   (goal, acceptance criteria, grep-verified names) and embed it verbatim.
+2. **Branch + spec agent — alone, first.** Propose `git switch -c
+   <type>/<slug>` (approval-gated); this is the feature branch, and the spec
+   agent's tests become its first commit(s). Spawn it in the main worktree:
+
+   ```bash
+   mkdir -p .git/contest
+   git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
+   win=$(tmux new-window -P -F '#{window_id}' -n contest -c "$PWD" \
+     "claude --model 'claude-opus-4-6-[1m]' --effort max $git_allow '<spec seed>'")
+   tmux select-pane -t "$win" -T <slug>-spec
+   ```
+
+   Spec seed prompt (escape single quotes, `'` → `'\''`):
+   > <task spec> — You are on branch `<type>/<slug>`. Write acceptance tests
+   > ONLY, verifying the task's observable behavior — results, exit codes,
+   > side effects, never call shapes. Do NOT implement the feature. Every
+   > test must fail (red) against the current branch; a test that passes
+   > before implementation tests nothing — delete and rewrite it. Run the
+   > suite and confirm all red. When done: commit (approval-gated), write
+   > `<main-path>/.git/contest/spec.md` (test file paths, the exact command
+   > that runs them, the red-run output), and only then
+   > `touch <main-path>/.git/contest/spec.done`. Context budget: 15% nudge,
+   > never exceed 20%.
+3. **Checkpoint the spec.** Monitor for the report (step 6 loop, markers =
+   `spec`, N=1). On `REPORT`: re-run the reported test command and confirm
+   every test is red — a green test goes back as rework via `tmux send-keys
+   -t <pane>` (first confirm `tmux display-message -p -t <pane>
+   '#{pane_dead}'` prints `0`). Then show the user the test names as the
+   pinned acceptance criteria and get one OK before any implementation
+   starts — this checkpoint is the task file slice never had.
+4. **Create both worktrees from the spec HEAD** so A and B inherit the
+   tests — no push needed, worktrees share the object store:
+
+   ```bash
+   spec_head=$(git rev-parse HEAD)
+   git worktree add ../$(basename "$PWD")-<slug>-a -b <type>/<slug>-a "$spec_head"
+   git worktree add ../$(basename "$PWD")-<slug>-b -b <type>/<slug>-b "$spec_head"
+   ```
+
+5. **Spawn A and B concurrently** — split the contest window, one pane per
+   worker `-c` its worktree, titles `<slug>-a` / `<slug>-b`. Layout from the
+   window's actual width, ~80 cols per pane:
+   `w=$(tmux display-message -t "$win" -p '#{window_width}')`; wide enough →
+   `even-horizontal`, else `even-vertical`. Seed prompts are **identical**
+   (`a`/`b` differ only in report paths):
+   > <task spec> — Implement it end to end in atomic, approval-gated
+   > commits, per this repo's CLAUDE.md. Run the existing tests in <test
+   > paths from spec.md> as part of your verify step and include their
+   > output in your report. When done: run /handoff so the task file's
+   > Handoff section (or HANDOFF.md if this repo has no TODO/) carries what
+   > landed and any surprises, then write
+   > `<main-path>/.git/contest/a.md` (commits, files touched, verify
+   > commands + their output, surprises), and only once it is fully written:
+   > `touch <main-path>/.git/contest/a.done`. If rework arrives, address it
+   > and re-report the same way (overwrite both files). Context budget: 15%
+   > nudge, never exceed 20%.
+
+   Neither prompt mentions the other worker, the spec agent, or a contest —
+   a worker told it is competing optimizes for winning, not for the task.
+6. **Supervise** — first write the interim handoff, the safety net if the
+   head dies mid-contest: refresh the task file's `## Handoff` (or
+   `HANDOFF.md`) with the feature branch, spec HEAD, both worktree paths +
+   pane ids, and `reports land in .git/contest/` — enough for a fresh
+   session to reconvene. Then arm one persistent monitor emitting a line per
+   report and per pane that dies without reporting (silence must not look
+   like success):
+
+   ```bash
+   seen=""
+   while true; do
+     for m in <markers>; do
+       case " $seen " in *" $m "*) continue ;; esac
+       if [ -e ".git/contest/$m.done" ]; then seen="$seen $m"; echo "REPORT $m"
+       elif ! tmux list-panes -t "$win" -F '#{pane_title}' | grep -q "<slug>-$m\$"
+       then seen="$seen $m"; echo "PANE GONE $m — died without reporting"; fi
+     done
+     [ $(echo $seen | wc -w) -ge N ] && { echo "ALL IN"; break; }
+     sleep 20
+   done
+   ```
+
+   Markers = `a b`, N=2. On each `REPORT`: re-run the worker's verify
+   commands and the spec tests in its worktree — trust that output over the
+   report — and delegate the diff read to a `feature-dev:code-reviewer`
+   agent pointed at the worktree (`git diff <spec_head>...<branch>`, task
+   spec as the yardstick); the diff lands in the reviewer's context, not the
+   head's.
+   Rework goes back via `tmux send-keys` (alive check as in step 3).
+   Selection starts only after both report; a `PANE GONE` forfeits that
+   side — the survivor still has to pass selection step 1.
+
+**Selection** — a decision procedure, not a judgment call. Run in order; stop
+at the first decisive step.
+
+1. Run the spec agent's test command in each worktree. Take pass/fail counts
+   from the runner's summary output, never from the workers' reports.
+2. Counts differ → more passes wins.
+3. Tied → run the project's lint/typecheck in both worktrees. One clean, one
+   not → clean wins.
+4. Still tied → two `feature-dev:code-reviewer` agents, one per diff, the
+   task spec as the yardstick; ask each for a readability read and pick from
+   the two reports. The only subjective step, and the last resort.
+
+**Land the winner.** In the main worktree — still on `<type>/<slug>` at the
+spec HEAD — propose `git merge --ff-only <type>/<slug>-<winner>`
+(approval-gated). The feature is now one linear branch: the tests-first
+commit(s), then the winner's atomic commits. Report to the user: winner, test
+counts (`A 7/9, B 9/9`), the specific tests that differentiated them and what
+the loser got wrong, lint results if step 3 decided it. Then, approval-gated:
+`git worktree remove` both worktrees, delete both `-a`/`-b` branches, and
+`rm -rf .git/contest` (scratch inside the git dir — it can never be
+committed). Continue at §4 on the feature branch — §5 then invokes the
+`handoff` skill as with any slice, replacing the interim handoff with the
+contest outcome: winner, both test counts, and the next slice.
