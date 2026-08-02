@@ -23,6 +23,7 @@ verbatim and **stop — do not execute the skill**.
   /cycle NN                      work on task NN
   /cycle --adjust                replan only, no execution
   /cycle --spawn [N]             fan out concurrent tasks in worktrees
+  /cycle --contest NN            one task, 3 agents: spec tests, two builds, winner by test count
   /cycle --help                  show this help
 
   See also:
@@ -52,6 +53,7 @@ it never relaxes them.
 /cycle NN         # jump to a specific task
 /cycle --adjust   # replan only — reorder/resize/add/drop, no execution
 /cycle --spawn [N]# fan out up to N independent tasks in worktrees (auto-sized if omitted, cap 3)
+/cycle --contest NN # competitive: spec agent writes tests, two workers implement task NN, winner by test count
 ```
 
 ## Model tiers
@@ -318,6 +320,96 @@ never gates a worker's commit. `TODO/reports/` is scratch; don't commit it.
 `TODO/reports/`, check each worktree (branch pushed? PR open? task Handoff?), mark
 completed tasks `[x]` with PR numbers, `git worktree remove` completed ones
 (approval-gated), adjust, and continue or spawn the next batch.
+
+## `--contest` flow (competitive selection)
+
+One task, three agents. `--spawn` gives different tasks to different workers;
+`--contest NN` gives the *same* task to two and picks the winner mechanically.
+A spec agent writes acceptance tests first; A and B implement independently
+against them; the head selects by test count. No agent judges its own work.
+
+**When to recommend it:** the task is a genuine design fork (two plausible
+architectures — seeing both built beats arguing about them), or it is
+underspecified (the spec agent's test suite forces the acceptance criteria to
+be pinned down before implementation). **Not** for well-specified `~S` tasks:
+two Opus runs on a clear spec produce low-variance output — 2x tokens for a
+coin flip.
+
+1. **Preflight.** Exactly one task, required — no batch sizing, no
+   substitution. If task NN is not `[ ]` or any dep is not `[x]`, exit with
+   the blocker (`task 04 blocked: dep 02 is [~]`). Detail it (phase 1) if
+   needed; commit `TODO/` (approval-gated). Requires `$TMUX`; if unset, stop.
+2. **Spawn the spec agent — alone, first.** It runs in the main worktree on a
+   tests-only branch; A and B do not exist until it has pushed.
+
+   ```bash
+   mkdir -p TODO/reports
+   git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
+   win=$(tmux new-window -P -F '#{window_id}' -n contest -c "$PWD" \
+     "claude --model 'claude-opus-4-6-[1m]' --effort max $git_allow '<spec seed>'")
+   tmux select-pane -t "$win" -T taskNN-spec
+   ```
+
+   Spec seed prompt:
+   > Read TODO/taskNN-<slug>.md. Create branch `test/<slug>-spec` from HEAD
+   > (approval-gated). Write acceptance tests ONLY, verifying the task's
+   > observable behavior — results, exit codes, side effects, never call
+   > shapes. Do NOT implement the feature. Every test must fail (red) against
+   > the current branch; a test that passes before implementation tests
+   > nothing — delete and rewrite it. Run the suite and confirm all red. When
+   > done: commit, push, write `TODO/reports/taskNN-spec.md` (branch, test
+   > file paths, the exact command that runs them, the red-run output), and
+   > only then `touch TODO/reports/taskNN-spec.done`. Context budget: 15%
+   > nudge, never exceed 20%.
+3. **Wait for the spec report** — the `--spawn` step 6 monitor with
+   `<taskNN list>` = `taskNN-spec`, N=1. On `REPORT`: re-run the reported
+   test command (main worktree is on the spec branch) and confirm every test
+   is red — a passing test goes back as rework via `tmux send-keys`, target
+   checks per the `--spawn` rework rules. Then record
+   `spec_head=$(git rev-parse test/<slug>-spec)`.
+4. **Create both worktrees from `spec_head`** — not the default branch's
+   HEAD — so A and B inherit the tests:
+
+   ```bash
+   git worktree add ../$(basename "$PWD")-taskNN-a -b <type>/<slug>-a "$spec_head"
+   git worktree add ../$(basename "$PWD")-taskNN-b -b <type>/<slug>-b "$spec_head"
+   ```
+
+5. **Spawn A and B concurrently** — split the contest window, one pane each,
+   titles `taskNN-a` / `taskNN-b`; layout, quote escaping, pane mapping, and
+   the interim handoff exactly as `--spawn` steps 4-5. Seed prompts are
+   **identical** to each other and to the `--spawn` step 4 worker prompt
+   (report files `taskNN-a.md` / `taskNN-b.md`), plus one line:
+   > Run the existing tests in `<test paths from the spec report>` as part
+   > of your verify step and include their output in your report.
+
+   Neither prompt mentions the other worker, the spec agent, or a contest —
+   a worker told it is competing optimizes for winning, not for the task.
+6. **Supervise** — `--spawn` step 6 monitor over `taskNN-a taskNN-b`, N=2.
+   On each `REPORT`, run the `--spawn` **On each `REPORT`** review unchanged
+   (delegated diff read, `Owns` assertion, verify re-run). Selection starts
+   only after both have reported. A `PANE GONE` forfeits that side — the
+   survivor still has to pass selection step 1 before it wins.
+
+**Selection** — a decision procedure, not a judgment call. Run in order; stop
+at the first decisive step.
+
+1. Run the spec agent's test command in each worktree. Take pass/fail counts
+   from the runner's summary output, never from the workers' reports.
+2. Counts differ → more passes wins.
+3. Tied → run the project's lint/typecheck (Refs block) in both worktrees.
+   One clean, one not → clean wins.
+4. Still tied → two `feature-dev:code-reviewer` agents, one per diff (the
+   diffs must land in the reviewers' context, not the head's), the task file
+   as spec; ask each for a readability read and pick from the two reports.
+   This is the only subjective step and it is the last resort.
+
+**Report to the user:** winner; test counts (`A 7/9, B 9/9`); the specific
+tests that differentiated them and what the loser got wrong; lint results if
+step 3 decided it. Then, both approval-gated: offer the winning branch for
+push + `gh pr create`, and offer `git worktree remove` of the losing worktree
+(+ branch delete). Tick the task `[x]` in `TODO/README.md` naming the winning
+branch.
 
 ## Context budget
 
