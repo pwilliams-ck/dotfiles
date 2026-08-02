@@ -3,7 +3,10 @@
 # Claude Code sessions only read-only gh subcommands pass through; everything
 # else — pr create/merge, api writes, auth token — is blocked at the binary
 # layer so agent mistakes can't reach the remote even from inside scripts.
-# Humans are unaffected. Install once: stow bin
+# Humans are unaffected. Install once:
+#   ln -s ~/dotfiles/bin/.local/bin/gh ~/.local/bin/gh
+# (not stowed: the scripts package's absolute symlink in .local/bin makes
+# stow abort on any package touching that dir)
 real=""
 for p in /opt/homebrew/bin/gh /usr/local/bin/gh; do
     [ -x "$p" ] && { real="$p"; break; }
