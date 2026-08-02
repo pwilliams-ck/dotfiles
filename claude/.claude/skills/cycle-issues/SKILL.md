@@ -201,6 +201,8 @@ Context budget: 15% nudge, never exceed 20%.
 Reconvene: `/cycle-issues --adjust` reconciles — checks which task issues
 are closed, updates the tracker, cleans up worktrees.
 
+`--contest NN` routes the same way: run `/cycle`'s `--contest` flow with issue #NN as the task spec and report markers named by issue number.
+
 ## Closing a cycle
 
 When all task checkboxes are checked and all task issues are closed:
