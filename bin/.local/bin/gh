@@ -1,0 +1,41 @@
+#!/bin/sh
+# gh shim (stow package "bin"; ~/.local/bin precedes homebrew in PATH): in
+# Claude Code sessions only read-only gh subcommands pass through; everything
+# else — pr create/merge, api writes, auth token — is blocked at the binary
+# layer so agent mistakes can't reach the remote even from inside scripts.
+# Humans are unaffected. Install once: stow bin
+real=""
+for p in /opt/homebrew/bin/gh /usr/local/bin/gh; do
+    [ -x "$p" ] && { real="$p"; break; }
+done
+if [ -z "$real" ]; then
+    echo "gh shim: real gh binary not found" >&2
+    exit 127
+fi
+
+[ -z "$CLAUDECODE" ] && exec "$real" "$@"
+
+case "$1" in
+    help|version|--version|--help|search|status)
+        exec "$real" "$@" ;;
+    api)
+        # read-shaped api calls only: any method override or body field is a write
+        for a in "$@"; do
+            case "$a" in
+                -X|--method|-X*|--method=*|-f|-F|--field*|--raw-field*|--input*)
+                    echo "gh shim: 'gh api' with a write flag is blocked in Claude Code sessions — run it yourself" >&2
+                    exit 1 ;;
+            esac
+        done
+        exec "$real" "$@" ;;
+esac
+
+case "$1 $2" in
+    "auth status"|"pr list"|"pr view"|"pr diff"|"pr checks"|"pr status"|\
+    "issue list"|"issue view"|"run list"|"run view"|"run watch"|\
+    "repo view"|"release list"|"release view"|"label list"|"gist list")
+        exec "$real" "$@" ;;
+esac
+
+echo "gh shim: 'gh $1 $2' is blocked in Claude Code sessions (remote write risk) — run it yourself or extend the allowlist in ~/.local/bin/gh" >&2
+exit 1
