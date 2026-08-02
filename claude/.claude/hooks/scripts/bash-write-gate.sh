@@ -13,6 +13,10 @@
 # containing anything risky can never be auto-approved — it falls through to
 # the static ask/deny rules in settings.json.
 set -e
+# Fail closed: a crashed gate must deny, not silently allow the write it
+# exists to stop (exit 2 = blocking error). The timeout path still fails
+# open — the harness kills and ignores a hook that overruns its timeout.
+trap 'echo "bash-write-gate crashed at line $LINENO — command blocked, check the script" >&2; exit 2' ERR
 input=$(cat)
 cmd=$(echo "$input"  | jq -r '.tool_input.command // ""')
 cwd=$(echo "$input"  | jq -r '.cwd // ""'); [[ -z "$cwd" ]] && cwd="$(pwd)"
@@ -58,6 +62,8 @@ if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:sp
     && emit deny "force-push (+refspec) is never auto-run — do it yourself."
   echo "$cmd" | grep -Eq '(--tags|--follow-tags)\b' \
     && emit deny "pushing tags is the prod deploy trigger — human-only."
+  echo "$cmd" | grep -Eq -- '--no-verify\b' \
+    && emit deny "push --no-verify bypasses the pre-push hook — human-only."
   echo "$cmd" | grep -Eq '(^|[[:space:]]|:|/|\+)(main|master)([[:space:]]|:|$)' \
     && emit deny "pushing main/master is human-only (merge deploys dev)."
   # No explicit branch ref -> current branch is the target. Deny on

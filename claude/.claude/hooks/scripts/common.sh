@@ -28,6 +28,12 @@ log_error() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR [$SCRIPT_NAME] $msg" >> "$LOG_FILE" 2>/dev/null || true
 }
 
+log_warn() {
+    local msg="$1"
+    _rotate_log
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARN  [$SCRIPT_NAME] $msg" >> "$LOG_FILE" 2>/dev/null || true
+}
+
 log_info() {
     local msg="$1"
     _rotate_log
@@ -35,8 +41,22 @@ log_info() {
 }
 
 # --- Error trap ---
-# Exit code 1 = hooks framework ignores gracefully (no output injected)
-trap 'log_error "crashed at line $LINENO"; exit 1' ERR
+# Default is fail-open: exit 1 = hooks framework ignores the hook, the tool
+# call proceeds. Right for informational hooks (reminders, context injection)
+# where a hook bug must not block every Bash call. Logged as WARN.
+#
+# Permission gates set HOOK_FAIL_MODE=closed BEFORE sourcing this file:
+# exit 2 = blocking error, the tool call is DENIED. A crashed gate must not
+# silently allow the write it exists to stop. Logged as ERROR.
+# (A mode variable, not a function: without set -E, an ERR trap set inside a
+# function does not replace the caller's trap.)
+# Either way the timeout path still fails open — the harness kills and
+# ignores a hook that overruns its timeout; only crashes are caught here.
+if [[ "${HOOK_FAIL_MODE:-open}" == "closed" ]]; then
+    trap 'log_error "crashed at line $LINENO (fail-closed, tool call blocked)"; exit 2' ERR
+else
+    trap 'log_warn "crashed at line $LINENO (fail-open, tool call proceeds)"; exit 1' ERR
+fi
 
 # --- Flag file checks ---
 
