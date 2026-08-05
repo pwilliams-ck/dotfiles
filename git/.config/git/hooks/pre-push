@@ -1,18 +1,67 @@
 #!/bin/sh
-# Global pre-push (core.hooksPath): block pushes from Claude Code sessions so
-# an unintended remote write can't reach teammates. Humans in a terminal are
-# unaffected. Runs regardless of what invoked git — Makefiles, npm scripts,
-# and repo hooks inherit CLAUDECODE, closing the "push inside a script" hole
-# that command-text gates can't see.
+# Global pre-push (core.hooksPath): guard remote writes from Claude Code
+# sessions. Humans in a terminal are unaffected. Runs regardless of what
+# invoked git — Makefiles, npm scripts, and repo hooks inherit CLAUDECODE,
+# closing the "push inside a script" hole that command-text gates can't see.
+#
+# Claude sessions may push ordinary branches, and only in repos that opted in
+# with a .claude-remote-ok marker in the repo root (the same marker
+# bash-write-gate.sh reads). Trunk, tags, deletions, and non-fast-forward
+# pushes stay human-only regardless of the marker.
+#
+# Decisions are made from the ref list on stdin, not the current branch:
+# `git push origin HEAD:<trunk>` pushes a ref that is not the branch you are on.
 #
 # Install once:  stow git && git config --global core.hooksPath ~/.config/git/hooks
 #
 # Known bypasses: `git push --no-verify` skips all pre-push hooks (the
 # Claude-side bash-write-gate denies that flag), and a repo-local
 # core.hooksPath (e.g. husky) overrides the global one in that repo.
-if [ -n "$CLAUDECODE" ]; then
-    echo "pre-push: blocked — pushes from Claude Code sessions are denied; run the push yourself" >&2
+
+# The ref list is consumed by the checks below and replayed for the repo hook.
+refs=$(cat)
+
+deny() {
+    echo "pre-push: blocked — $1; run the push yourself" >&2
     exit 1
+}
+
+if [ -n "$CLAUDECODE" ]; then
+    # --show-toplevel, matching bash-write-gate.sh, so a worktree opts in
+    # independently of its parent checkout.
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    [ -n "$repo_root" ] && [ -f "$repo_root/.claude-remote-ok" ] ||
+        deny "repo has not opted in (add .claude-remote-ok to the repo root)"
+
+    while read -r local_ref local_sha remote_ref remote_sha; do
+        [ -z "$remote_ref" ] && continue
+
+        case "$remote_ref" in
+            refs/heads/main | refs/heads/master)
+                deny "pushing $remote_ref is human-only" ;;
+            refs/tags/*)
+                deny "pushing tags is the prod deploy trigger — human-only" ;;
+        esac
+
+        # An all-zero local sha is a branch deletion.
+        case "$local_sha" in
+            *[!0]*) ;;
+            *) deny "deleting $remote_ref is human-only" ;;
+        esac
+
+        # An all-zero remote sha is a new branch; nothing to rewrite.
+        # Otherwise the push must fast-forward. Skipped when the remote commit
+        # is not present locally, where ancestry is unknowable.
+        case "$remote_sha" in
+            *[!0]*)
+                if git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+                    git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null ||
+                        deny "non-fast-forward (force) push to $remote_ref is human-only"
+                fi ;;
+        esac
+    done <<EOF
+$refs
+EOF
 fi
 
 # core.hooksPath replaces .git/hooks entirely — chain to the repo's own
@@ -20,6 +69,11 @@ fi
 # --git-path hooks: the latter resolves back to core.hooksPath (this file).
 repo_hook="$(git rev-parse --git-dir)/hooks/pre-push"
 if [ -x "$repo_hook" ]; then
-    exec "$repo_hook" "$@"
+    if [ -n "$refs" ]; then
+        printf '%s\n' "$refs" | "$repo_hook" "$@"
+    else
+        "$repo_hook" "$@" </dev/null
+    fi
+    exit $?
 fi
 exit 0

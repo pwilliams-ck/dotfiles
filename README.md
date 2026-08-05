@@ -74,6 +74,14 @@ Not carried by the repo — set up separately on each machine:
 - **MCP servers** (e.g. clickup) and their auth — machine-local (`~/.claude.json`); reconfigure.
 - `~/.claude/settings.local.json` and `hooks/logs/` — machine-local, intentionally untracked.
 - The hook scripts were vendored from the archived `review-hooks` repo; edit them under `claude/.claude/hooks/scripts/`.
+- **Global git hooks** need `git config --global core.hooksPath ~/.config/git/hooks` once per machine, after `stow git`. Without it the pre-push guard never runs.
+- `~/.config/git/ignore` is machine-local and untracked; it needs a `.claude-remote-ok` line so opt-in markers stay out of tracked trees.
+
+#### Letting Claude push
+
+Claude's remote writes are denied by default in every repo. To opt one in, drop an empty `.claude-remote-ok` in its root — per repo, and per worktree. That downgrades push/pull/`gh` to a confirmation prompt.
+
+Pushes to `main`/`master`, tags, branch deletions, and force pushes stay denied no matter what, enforced in `git/.config/git/hooks/pre-push` from the ref list git hands the hook on stdin.
 
 ### Codex
 

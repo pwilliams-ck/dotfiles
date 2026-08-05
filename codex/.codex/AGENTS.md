@@ -23,6 +23,17 @@
 - Never merge or rebase — locally or via `gh pr merge`. No exceptions.
 - Remote-mutating commands (`git push`, `gh pr create`) require explicit ask. The permission gates enforce this mechanically; this rule is defense-in-depth.
 
+### Remote-write opt-in
+
+Remote writes are denied by default. A repo opts in with an empty `.claude-remote-ok` file in its root, which downgrades `git push` / `git pull` / `gh` from deny to ask. The marker is per repo — a worktree is its own root and opts in separately. It is covered by `~/.config/git/ignore`, so it never reaches a repo's tracked tree or shows up in `git status`.
+
+Two independent layers read it:
+
+- `hooks/scripts/bash-write-gate.sh` — inspects the command text before the tool runs.
+- `~/.config/git/hooks/pre-push` — runs inside git, so it also catches pushes buried in Makefiles and npm scripts, which command-text inspection cannot see.
+
+Even in an opted-in repo, the pre-push hook denies pushes to `main`/`master`, tags, branch deletions, and non-fast-forward (force) pushes. It decides from the ref list on stdin rather than the current branch, so `git push origin HEAD:master` is caught while on a feature branch. Both layers are bypassed by `git push --no-verify` (the write gate denies that flag) and by a repo-local `core.hooksPath` such as husky.
+
 ## Comments
 
 - Prefer self-documenting code: a better name beats a comment.
