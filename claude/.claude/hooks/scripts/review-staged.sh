@@ -45,7 +45,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ -n "$repo" ]] || { echo "usage: review-staged.sh <repo-root> [--model <model>] [--bump]" >&2; exit 1; }
-repo=$(git -C "$repo" rev-parse --show-toplevel)
+common=$(git -C "$repo" rev-parse --git-common-dir)
+[[ "$common" != /* ]] && common=$(cd "$repo" && cd "$common" && pwd)
+repo=$(dirname "$common")
 hash=$(git -C "$repo" diff --staged | shasum -a 256 | awk '{print $1}')
 empty=$(printf '' | shasum -a 256 | awk '{print $1}')
 [[ "$hash" == "$empty" ]] && { echo "review-staged: nothing staged in $repo" >&2; exit 1; }

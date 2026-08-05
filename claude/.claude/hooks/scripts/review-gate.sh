@@ -39,8 +39,13 @@ dir="$cwd"
 c_arg=$(echo "$cmd" | sed -nE 's/.*git[[:space:]]+-C[[:space:]]+([^[:space:]]+).*/\1/p')
 [[ -n "$c_arg" ]] && dir="${c_arg/#\~/$HOME}"
 
-repo=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null || true)
-[[ -z "$repo" ]] && exit 0
+# --show-toplevel returns the worktree root in linked worktrees, not the main
+# repo root — so it won't match review-gate-repos entries. --git-common-dir
+# always points to the main .git; its parent is the canonical repo root.
+common=$(git -C "$dir" rev-parse --git-common-dir 2>/dev/null || true)
+[[ -z "$common" ]] && exit 0
+[[ "$common" != /* ]] && common=$(cd "$dir" && cd "$common" && pwd)
+repo=$(dirname "$common")
 
 repos_file="$HOOKS_DIR/review-gate-repos"
 [[ -f "$repos_file" ]] || exit 0
