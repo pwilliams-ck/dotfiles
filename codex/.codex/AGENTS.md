@@ -20,7 +20,8 @@
 
 ## Source control
 
-- Never run history or remote-mutating commands (`git commit`, `git push`, `git tag`, `gh pr create`) unless explicitly asked. Stage diffs; the human reviews, commits, and pushes.
+- Never merge or rebase — locally or via `gh pr merge`. No exceptions.
+- Remote-mutating commands (`git push`, `gh pr create`) require explicit ask. The permission gates enforce this mechanically; this rule is defense-in-depth.
 
 ## Comments
 
