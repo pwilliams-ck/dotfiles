@@ -131,13 +131,31 @@ coin flip.
 
    ```bash
    mkdir -p .git/contest
-   git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
    win=$(tmux new-window -P -F '#{window_id}' -n contest -c "$PWD" \
-     "claude --model 'claude-opus-4-6-[1m]' --effort max $git_allow '<spec seed>'")
-   tmux select-pane -t "$win" -T <slug>-spec
+     "claude --model 'claude-opus-4-6[1m]' --effort max")
+   spec_pane=$(tmux list-panes -t "$win" -F '#{pane_id}')
+   tmux select-pane -t "$spec_pane" -T <slug>-spec   # readability only, never logic
    ```
 
-   Spec seed prompt (escape single quotes, `'` → `'\''`):
+   Launch with **no positional prompt** and no `--allowedTools` flags — local
+   `git add` / `git commit` already run unprompted under the user's gates, and
+   an unquoted flag string re-splits on whitespace and corrupts tmux's argument
+   handling, which swallows the seed. Deliver the seed by tmux buffer instead —
+   a file plus a buffer has no quoting surface at all:
+
+   ```bash
+   printf '%s' "$seed" > "$SP/seed-spec.txt"   # single line, no embedded newlines
+   tmux load-buffer -b sspec "$SP/seed-spec.txt"
+   tmux paste-buffer -b sspec -t "$spec_pane"
+   tmux delete-buffer -b sspec
+   sleep 1 && tmux send-keys -t "$spec_pane" Enter
+   ```
+
+   The seed must be **one line**: a multi-line paste submits at the first
+   newline and strands the rest in an empty prompt. Join the prompt below into
+   a single line before writing the file.
+
+   Spec seed prompt:
    > <task spec> — You are on branch `<type>/<slug>`. Write acceptance tests
    > ONLY, verifying the task's observable behavior — results, exit codes,
    > side effects, never call shapes. Do NOT implement the feature. Every
@@ -164,12 +182,20 @@ coin flip.
    git worktree add ../$(basename "$PWD")-<slug>-b -b <type>/<slug>-b "$spec_head"
    ```
 
-5. **Spawn A and B concurrently** — split the contest window, one pane per
-   worker `-c` its worktree, titles `<slug>-a` / `<slug>-b`. Layout from the
+   Then run the project's install command in **both** worktrees — a fresh
+   worktree has no `node_modules` or vendor dir, and neither worker can run the
+   spec tests without one.
+
+5. **Spawn A and B concurrently** — split the contest window with
+   `tmux split-window -P -F '#{pane_id}' -t "$win" -c <worktree>`, one pane per
+   worker, capturing each `pane_id`. Titles `<slug>-a` / `<slug>-b` are **for
+   humans only** — Claude Code overwrites its own pane title to `✳ Claude Code`
+   within seconds, so no logic may key off `#{pane_title}`. Layout from the
    window's actual width, ~80 cols per pane:
    `w=$(tmux display-message -t "$win" -p '#{window_width}')`; wide enough →
-   `even-horizontal`, else `even-vertical`. Seed prompts are **identical**
-   (`a`/`b` differ only in report paths):
+   `even-horizontal`, else `even-vertical`. Deliver both seeds by tmux buffer
+   as in step 2 — one line each, never as a command argument. Seed prompts are
+   **identical** (`a`/`b` differ only in report paths):
    > <task spec> — Implement it end to end in atomic, approval-gated
    > commits, per this repo's CLAUDE.md. Run the existing tests in <test
    > paths from spec.md> as part of your verify step and include their
@@ -194,25 +220,41 @@ coin flip.
 
    ```bash
    seen=""
+   panes="<marker:pane_id pairs>"   # e.g. a:%12 b:%13 — pane_id, never pane_title
    while true; do
-     for m in <markers>; do
+     # a tmux failure must not read as N dead workers — skip the sweep instead
+     live=$(tmux list-panes -t "$win" -F '#{pane_id} #{pane_dead}' 2>/dev/null) \
+       || live=""
+     for mp in $panes; do
+       m=${mp%%:*}; id=${mp#*:}
        case " $seen " in *" $m "*) continue ;; esac
        if [ -e ".git/contest/$m.done" ]; then seen="$seen $m"; echo "REPORT $m"
-       elif ! tmux list-panes -t "$win" -F '#{pane_title}' | grep -q "<slug>-$m\$"
-       then seen="$seen $m"; echo "PANE GONE $m — died without reporting"; fi
+       elif [ -n "$live" ]; then
+         case "$live" in *"$id 0"*) continue ;; esac
+         seen="$seen $m"; echo "PANE GONE $m — died without reporting"
+       fi
      done
      [ $(echo $seen | wc -w) -ge N ] && { echo "ALL IN"; break; }
      sleep 20
    done
    ```
 
+   Liveness keys off `#{pane_id}`, which nothing can overwrite. Never off
+   `#{pane_title}` — Claude Code renames its own pane, the match misses every
+   worker, and the first pass reports both workers dead ~20s after spawn.
+
    Markers = `a b`, N=2. On each `REPORT`: re-run the worker's verify
    commands and the spec tests in its worktree — trust that output over the
-   report — and delegate the diff read to a `feature-dev:code-reviewer`
-   agent pointed at the worktree (`git diff <spec_head>...<branch>`, task
-   spec as the yardstick); the diff lands in the reviewer's context, not the
-   head's.
-   Rework goes back via `tmux send-keys` (alive check as in step 3).
+   report — and delegate the diff read to a review agent (the harness's
+   code-review agent if one is listed in the available agent types, otherwise
+   `general-purpose` briefed as a code reviewer in the prompt) pointed at the
+   worktree (`git diff <spec_head>...<branch>`, task spec as the yardstick);
+   the diff lands in the reviewer's context, not the head's.
+   Rework goes back via `tmux send-keys` (alive check as in step 3). Before
+   re-arming the monitor for a re-report, **`rm .git/contest/<m>.done` first**:
+   the monitor has already exited on `ALL IN` and the first report's `.done`
+   still exists, so a fresh monitor armed over a stale marker fires `REPORT`
+   instantly, on every pass, forever.
    Selection starts only after both report; a `PANE GONE` forfeits that
    side — the survivor still has to pass selection step 1.
 
@@ -224,9 +266,10 @@ at the first decisive step.
 2. Counts differ → more passes wins.
 3. Tied → run the project's lint/typecheck in both worktrees. One clean, one
    not → clean wins.
-4. Still tied → two `feature-dev:code-reviewer` agents, one per diff, the
-   task spec as the yardstick; ask each for a readability read and pick from
-   the two reports. The only subjective step, and the last resort.
+4. Still tied → two review agents (the harness's code-review agent if one is
+   listed, otherwise `general-purpose` briefed as a code reviewer), one per
+   diff, the task spec as the yardstick; ask each for a readability read and
+   pick from the two reports. The only subjective step, and the last resort.
 
 **Land the winner.** In the main worktree — still on `<type>/<slug>` at the
 spec HEAD — propose `git merge --ff-only <type>/<slug>-<winner>`

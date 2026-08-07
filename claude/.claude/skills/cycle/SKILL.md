@@ -61,7 +61,7 @@ it never relaxes them.
 | Role | Model | Job |
 |------|-------|-----|
 | Head | session model | Plan, sequence, review, own git and TODO/. |
-| Implementation worker | `claude-opus-4-6-[1m]`, `--effort max` | Execute one sub-task in a tmux pane. |
+| Implementation worker | `claude-opus-4-6[1m]`, `--effort max` | Execute one sub-task in a tmux pane. |
 | Lookups | default | Greps, quick doc checks via `Agent()`. |
 
 Implementation workers run as `claude` CLI sessions in a split pane (see phase 2). Lookups use `Agent()` with default model. **Never spawn Fable subagents.**
@@ -151,10 +151,11 @@ For larger sub-tasks, spawn an implementation worker in a split pane — same me
 
 ```bash
 mkdir -p TODO/reports
-git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
 pane=$(tmux split-window -P -F '#{pane_id}' -c "$PWD" \
-  "claude --model 'claude-opus-4-6-[1m]' --effort max $git_allow '<seed>'")
+  "claude --model 'claude-opus-4-6[1m]' --effort max")
 ```
+
+Launch with **no positional prompt** and deliver the seed by tmux buffer, exactly as `--spawn` step 4 — a seed passed as a command argument is silently swallowed.
 
 Brief the seed per `~/.claude/skills/implementer/SKILL.md` §5, scoped to the task's `Owns` globs. Instruct the worker to write `TODO/reports/taskNN.md` and `touch TODO/reports/taskNN.done` on completion. Monitor for `.done`, then review and rework per the `--spawn` flow's **On each `REPORT`** section. Rework goes via `tmux send-keys -t "$pane"`, not `SendMessage`.
 
@@ -165,7 +166,10 @@ After a task completes (or when context budget requires):
 1. Update `TODO/README.md`: mark `[x]` (or `[~]` if partial); **adjust the
    plan** from what you learned (reorder/resize/add/drop/split), append to the
    adjustments log; re-estimate remaining work.
-2. Run the task's verify commands; show green.
+2. Run the task's verify commands; show green. **Re-measure the test baseline
+   here** — never copy the count out of the previous batch's handoff. Merged work
+   adds tests, and a stale baseline seeded into workers sends them hunting
+   regressions that are not theirs.
 3. Offer push + `gh pr create` per git policy (exact commands, wait, never merge).
 4. **Decision point** — route via `~/.claude/skills/shared/next-command.md`,
    then propose exactly one; never silently roll on:
@@ -200,6 +204,10 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    so worktrees branch from a state that includes the task files.
 3. **Create worktrees** from current HEAD, one per task, and verify each:
    `git worktree add ../$(basename "$PWD")-taskNN-<slug> -b <type>/<slug>`
+   A fresh worktree has **no dependencies** — no `node_modules`, no vendor dir.
+   Run the project's install command in each one (`npm ci`, `go mod download`,
+   `uv sync`, …) before spawning, or the worker's first action is a confusing
+   test failure it has to diagnose before it can start.
 4. **Spawn sessions** — all workers go in **one new tmux window, one pane
    each**, so the user can watch and answer every prompt without switching
    windows. Requires `$TMUX`; if unset, stop and say so. Use the exact model id
@@ -215,14 +223,18 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    > rework, address it and re-report the same way (overwrite both files).
    > Context budget: 15% nudge, never exceed 20%.
 
-   First worker creates the window, the rest split it:
+   First worker creates the window, the rest split it. Launch `claude` with
+   **no positional prompt** and no `--allowedTools` flags — local `git add` /
+   `git commit` already run unprompted under the user's gates, and an
+   unquoted flag string re-splits on whitespace and corrupts tmux's argument
+   handling, which swallows the seed:
 
    ```bash
-   git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
-   win=$(tmux new-window -P -F '#{window_id}' -n cycle -c <worktree-1> \
-     "claude --model <model-id> $git_allow '<seed 1>'")
-   tmux split-window -t "$win" -c <worktree-2> "claude --model <model-id> $git_allow '<seed 2>'"
-   tmux split-window -t "$win" -c <worktree-3> "claude --model <model-id> $git_allow '<seed 3>'"
+   m="claude --model <model-id> --effort max"
+   win=$(tmux new-window -P -F '#{window_id}' -n cycle -c <worktree-1> "$m")
+   p1=$(tmux list-panes -t "$win" -F '#{pane_id}')
+   p2=$(tmux split-window -P -F '#{pane_id}' -t "$win" -c <worktree-2> "$m")
+   p3=$(tmux split-window -P -F '#{pane_id}' -t "$win" -c <worktree-3> "$m")
    ```
 
    **Layout — pick from the window's actual width, don't hardcode:**
@@ -239,11 +251,27 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    ≈ 151 cols) → `even-vertical`, N equal full-width rows stacked top to bottom.
    Both layouts are equally spaced by construction.
 
-   - Escape single quotes in each seed prompt (`'` → `'\''`) before embedding.
+   **Deliver each seed by tmux buffer**, once the pane's prompt is up — a file
+   plus a buffer has no quoting surface at all:
+
+   ```bash
+   printf '%s' "$seed" > "$SP/seedNN.txt"          # single line, no embedded newlines
+   tmux load-buffer -b sNN "$SP/seedNN.txt"
+   tmux paste-buffer -b sNN -t "$pane"
+   tmux delete-buffer -b sNN
+   sleep 1 && tmux send-keys -t "$pane" Enter
+   ```
+
+   The seed must be **one line**: a multi-line paste submits at the first
+   newline and strands the rest in an empty prompt. Join the prompt template
+   into a single line before writing the file.
+
    - Title each pane so the user can tell them apart:
-     `tmux select-pane -t <pane> -T taskNN-<slug>`.
-   - Confirm with `tmux list-panes -t "$win" -F '#{pane_id} #{pane_title}
-     #{pane_current_path}'` — N panes, right worktrees, all alive (a failed
+     `tmux select-pane -t <pane_id> -T taskNN-<slug>` — **for humans only.**
+     Claude Code overwrites its own pane title to `✳ Claude Code` within
+     seconds of launch, so no logic may ever key off `#{pane_title}`.
+   - Confirm with `tmux list-panes -t "$win" -F '#{pane_id} #{pane_dead}
+     #{pane_current_path}'` — N panes, right worktrees, `pane_dead` 0 (a failed
      `claude` launch closes its pane immediately). Keep the
      **task → pane_id → worktree → branch** mapping; supervision needs it.
      Report it to the user; remind them of `prefix + z` to zoom a pane and
@@ -260,6 +288,7 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
 
    ```bash
    cd <main-worktree>; seen=""
+   panes="<taskNN:pane_id pairs from the batch mapping>"   # e.g. task02:%12 task04:%13
    while true; do
      for f in TODO/reports/*.done; do
        [ -e "$f" ] || continue
@@ -267,25 +296,34 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
        case " $seen " in *" $t "*) continue ;; esac
        seen="$seen $t"; echo "REPORT $t"
      done
-     live=$(tmux list-panes -t "$win" -F '#{pane_title}' 2>/dev/null)
-     for t in <taskNN list>; do
-       case " $seen " in *" $t "*) continue ;; esac
-       case "$live" in *"$t"*) continue ;; esac
-       seen="$seen $t"; echo "PANE GONE $t — died without reporting"
-     done
+     # a tmux failure must not read as N dead workers — skip the sweep instead
+     if live=$(tmux list-panes -t "$win" -F '#{pane_id} #{pane_dead}' 2>/dev/null); then
+       for tp in $panes; do
+         t=${tp%%:*}; id=${tp#*:}
+         case " $seen " in *" $t "*) continue ;; esac
+         case "$live" in *"$id 0"*) continue ;; esac
+         seen="$seen $t"; echo "PANE GONE $t — died without reporting"
+       done
+     fi
      [ $(echo $seen | wc -w) -ge N ] && { echo "BATCH COMPLETE"; break; }
      sleep 20
    done
    ```
+
+   Liveness keys off `#{pane_id}`, which nothing can overwrite. Never off
+   `#{pane_title}` — Claude Code renames its own pane, the match misses every
+   worker, and the first pass reports the whole batch dead ~20s after spawn.
 
    Then tell the user supervision is live and **stay resident** — do not
    `/clear` and do not stop; each event re-invokes the head.
 
 **On each `REPORT taskNN`** (auto-review):
 
-1. Read `TODO/reports/taskNN.md`, then delegate the diff read to a
-   `feature-dev:code-reviewer` agent (`run_in_background: false`) pointed at the
-   worktree with `git diff <base>...<branch>` and the task file as the spec —
+1. Read `TODO/reports/taskNN.md`, then delegate the diff read to a review agent
+   (`run_in_background: false`) — the harness's code-review agent if one is
+   listed in the available agent types, otherwise `general-purpose` briefed as a
+   code reviewer in the prompt — pointed at the worktree with
+   `git diff <base>...<branch>` and the task file as the spec —
    **the diff must land in the reviewer's context, not the head's**, or three
    reviews will blow the 15% budget.
 2. Assert the write scope — `git diff --name-only <base>...<branch>` against the
@@ -301,9 +339,13 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
      `tmux display-message -p -t <pane_id> '#{pane_dead}'` must print `0`;
      anything else means treat the task as `PANE GONE`, don't send:
      `tmux send-keys -t <pane_id> '<specific rework instructions>' Enter`
-     (escape quotes; one send per pane, never interleave). Mark `[~]` and wait
-     for the re-report. If the pane is gone, take the task over in the head only
-     if budget allows — otherwise leave `[~]` with the reason.
+     (escape quotes; one send per pane, never interleave). Mark `[~]`, then in
+     this order: **`rm TODO/reports/taskNN.done` first**, then arm a fresh
+     `Monitor` scoped to that one task (`$panes` = just its pair, N=1). The
+     batch monitor already exited on `BATCH COMPLETE`, and the first report's
+     `.done` still exists — arm before deleting and it fires `REPORT` instantly,
+     on every pass, forever. If the pane is gone, take the task over in the
+     head only if budget allows — otherwise leave `[~]` with the reason.
 
 **On `PANE GONE`** — inspect the worktree (`git log`, `git status`, its
 task file's `## Handoff`); record what landed, mark `[~]` with a concrete next step.
@@ -344,11 +386,14 @@ coin flip.
 
    ```bash
    mkdir -p TODO/reports
-   git_allow="--allowedTools 'Bash(git add:*)' --allowedTools 'Bash(git commit:*)'"
    win=$(tmux new-window -P -F '#{window_id}' -n contest -c "$PWD" \
-     "claude --model 'claude-opus-4-6-[1m]' --effort max $git_allow '<spec seed>'")
-   tmux select-pane -t "$win" -T taskNN-spec
+     "claude --model 'claude-opus-4-6[1m]' --effort max")
+   spec_pane=$(tmux list-panes -t "$win" -F '#{pane_id}')
+   tmux select-pane -t "$spec_pane" -T taskNN-spec   # readability only, never logic
    ```
+
+   Deliver the spec seed by tmux buffer per `--spawn` step 4 — one line, no
+   positional prompt argument, no `--allowedTools` flags.
 
    Spec seed prompt:
    > Read TODO/taskNN-<slug>.md. Create branch `test/<slug>-spec` from HEAD
@@ -362,7 +407,7 @@ coin flip.
    > only then `touch TODO/reports/taskNN-spec.done`. Context budget: 15%
    > nudge, never exceed 20%.
 3. **Wait for the spec report** — the `--spawn` step 6 monitor with
-   `<taskNN list>` = `taskNN-spec`, N=1. On `REPORT`: re-run the reported
+   `$panes` = `taskNN-spec:$spec_pane`, N=1. On `REPORT`: re-run the reported
    test command (main worktree is on the spec branch) and confirm every test
    is red — a passing test goes back as rework via `tmux send-keys`, target
    checks per the `--spawn` rework rules. Then record
@@ -375,9 +420,13 @@ coin flip.
    git worktree add ../$(basename "$PWD")-taskNN-b -b <type>/<slug>-b "$spec_head"
    ```
 
+   Then run the project's install command in **both** worktrees — a fresh
+   worktree has no `node_modules` or vendor dir, and neither worker can run the
+   spec tests without one.
+
 5. **Spawn A and B concurrently** — split the contest window, one pane each,
-   titles `taskNN-a` / `taskNN-b`; layout, quote escaping, pane mapping, and
-   the interim handoff exactly as `--spawn` steps 4-5. Seed prompts are
+   titles `taskNN-a` / `taskNN-b`; layout, buffer seed delivery, pane mapping,
+   and the interim handoff exactly as `--spawn` steps 4-5. Seed prompts are
    **identical** to each other and to the `--spawn` step 4 worker prompt
    (report files `taskNN-a.md` / `taskNN-b.md`), plus one line:
    > Run the existing tests in `<test paths from the spec report>` as part
@@ -385,7 +434,8 @@ coin flip.
 
    Neither prompt mentions the other worker, the spec agent, or a contest —
    a worker told it is competing optimizes for winning, not for the task.
-6. **Supervise** — `--spawn` step 6 monitor over `taskNN-a taskNN-b`, N=2.
+6. **Supervise** — `--spawn` step 6 monitor with `$panes` =
+   `taskNN-a:<pane_id> taskNN-b:<pane_id>`, N=2.
    On each `REPORT`, run the `--spawn` **On each `REPORT`** review unchanged
    (delegated diff read, `Owns` assertion, verify re-run). Selection starts
    only after both have reported. A `PANE GONE` forfeits that side — the
@@ -399,10 +449,11 @@ at the first decisive step.
 2. Counts differ → more passes wins.
 3. Tied → run the project's lint/typecheck (Refs block) in both worktrees.
    One clean, one not → clean wins.
-4. Still tied → two `feature-dev:code-reviewer` agents, one per diff (the
-   diffs must land in the reviewers' context, not the head's), the task file
-   as spec; ask each for a readability read and pick from the two reports.
-   This is the only subjective step and it is the last resort.
+4. Still tied → two review agents (the harness's code-review agent if one is
+   listed, otherwise `general-purpose` briefed as a code reviewer), one per
+   diff (the diffs must land in the reviewers' context, not the head's), the
+   task file as spec; ask each for a readability read and pick from the two
+   reports. This is the only subjective step and it is the last resort.
 
 **Report to the user:** winner; test counts (`A 7/9, B 9/9`); the specific
 tests that differentiated them and what the loser got wrong; lint results if
