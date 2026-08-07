@@ -101,7 +101,12 @@ without opening every task file:
 **Resume:** `TODO/task03-oidc-callback.md` → Handoff (IN PROGRESS)
 ```
 
-Do not commit any of this — leave that to the user or the next session's commit.
+Committing: if the only unstaged changes are the files this handoff touched,
+offer an approval-gated commit of exactly those files (one-line `docs(todo):`
+subject) — an uncommitted handoff does not survive a `/clear`, a worktree
+spawn, or a stray checkout. If the tree carries any other changes, leave
+everything uncommitted for the user or the next session; never sweep task WIP
+into a handoff commit. Never push — remote-write policy is out of scope here.
 
 ## 4. Route what does not belong in the handoff
 
