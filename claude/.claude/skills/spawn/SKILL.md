@@ -29,7 +29,7 @@ verbatim and **stop — do not execute the skill**.
 
 # Spawn a sibling Claude Code session
 
-Open a fresh interactive `claude` in a **new window of the current tmux session**, running `claude-opus-4-6-[1m]` at `--effort max`, then confirm the window exists.
+Open a fresh interactive `claude` in a **new window of the current tmux session**, running `claude-opus-4-6[1m]` at `--effort max`, then confirm the window exists.
 
 ## 1. Preconditions
 
@@ -64,17 +64,31 @@ The new session always starts with an initial prompt composed of, in order:
 
 ## 3. Create the window
 
-One command; `-P -F` prints the new window's target for verification:
+Launch with **no positional prompt** — a seed passed as a command argument is
+swallowed by tmux's argument handling and the session sits idle at an empty
+prompt, with nothing erroring. `-P -F` prints the new pane's id and the window
+target for verification:
 
 ```bash
-tmux new-window -P -F '#{session_name}:#{window_index}' -n cc -c "$PWD" \
-  "claude --model 'claude-opus-4-6-[1m]' --effort max '<seed prompt>'"
+read -r pane target <<<"$(tmux new-window -P -F '#{pane_id} #{session_name}:#{window_index}' \
+  -n cc -c "$PWD" "claude --model 'claude-opus-4-6[1m]' --effort max")"
+```
+
+Then deliver the seed by tmux buffer, which has no quoting surface:
+
+```bash
+printf '%s' "$seed" > "$SP/seed.txt"          # single line, no embedded newlines
+tmux load-buffer -b spawnseed "$SP/seed.txt"
+tmux paste-buffer -b spawnseed -t "$pane"
+tmux delete-buffer -b spawnseed
+sleep 1 && tmux send-keys -t "$pane" Enter
 ```
 
 - Like `prefix + c`, this switches focus to the new window — that is expected;
   do not add `-d`.
-- The seed prompt is single-quoted inside the command string; escape any
-  single quotes in it (`'` → `'\''`) first.
+- The seed must be **one line**: a multi-line paste submits at the first newline
+  and strands the rest in an empty prompt. Join step 2's parts with spaces
+  before writing the file.
 
 ## 4. Confirm
 
