@@ -21,7 +21,7 @@
 ## Source control
 
 - **Never integrate from a remote.** No `git merge origin/…`, no `git rebase origin/…`, no `git pull` or `git pull --rebase`, no `gh pr merge`. These are denied permanently and no toggle enables them. If one is genuinely needed, stop and tell me the exact command and what it will do to my tree — I will run it.
-- Local merge and rebase are allowed without a prompt, as long as the target is a local ref. Inside a compound command they ask instead, because the rest of the line is unreviewed.
+- Local merge and rebase are allowed without a prompt, as long as the target is a local ref. A compound line is judged segment by segment: `git merge x | tail -6` and `git add -A && git commit -m x` run unprompted, while a segment the gate does not recognise makes the whole line ask.
 - Local staging, committing, branching, and stashing run without a prompt. Committing on `main`/`master` is denied — branch first.
 - `git push` and `gh` ask every time. `git pull --ff-only` is allowed outright: it advances a branch pointer or fails, so it can neither write a merge commit nor rewrite a sha.
 - Never work around a gate. `--no-verify`, a repo-local `core.hooksPath`, and hand-writing or deleting a marker file are all off limits; ask me instead.

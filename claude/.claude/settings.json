@@ -27,11 +27,7 @@
       "Bash(git pull:*)",
       "Bash(gh:*)",
       "Bash(rm:*)",
-      "Bash(rmdir:*)",
-      "Bash(truncate:*)",
-      "Bash(mv:*)",
-      "Bash(cp:*)",
-      "Bash(sed -i:*)"
+      "Bash(rmdir:*)"
     ],
     "defaultMode": "auto"
   },

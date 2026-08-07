@@ -21,10 +21,10 @@
 # permits `gh pr merge`. Those are human-only, permanently.
 # Flip both with `claude-gate`.
 #
-# Only emits `allow` for a single, simple statement (no &&, ||, ;, |, command
-# substitution, process substitution, or newline) so a compound command
-# containing anything risky can never be auto-approved — it falls through to
-# the static ask/deny rules in settings.json.
+# A compound line is judged segment by segment: it can be auto-approved only
+# when every segment is itself in the allow tier. Command substitution, process
+# substitution, backgrounding and newlines can hide an arbitrary command, so
+# they block `allow` and the line falls through to the ask/deny rules.
 set -e
 trap 'echo "bash-write-gate crashed at line $LINENO — command blocked, check the script" >&2; exit 2' ERR
 input=$(cat)
@@ -65,88 +65,66 @@ remote_gate(){
   fi
 }
 
-# ── simplicity guard ──
+# ── segment analysis ──
+#
+# A compound line is allowable when every one of its segments is independently
+# allowable, so `git merge x | tail -6` and `git add -A && git commit -m x`
+# auto-approve while anything unrecognised still falls through to ask/deny.
+# Command substitution, process substitution, backgrounding and embedded
+# newlines can hide an arbitrary command inside a segment, so they block
+# `allow` outright.
+
+opaque=0
+echo "$cmd" | grep -Eq '\$\(|`|>\(|<\('     && opaque=1
+echo "$cmd" | grep -Eq '(^|[^&>])&([^&]|$)' && opaque=1
+[[ "$cmd" == *$'\n'* ]] && opaque=1
 
 is_simple=1
-echo "$cmd" | grep -Eq '&&|\|\||[;|]|\$\(|`|>\(|<\(' && is_simple=0
-[[ "$cmd" == *$'\n'* ]] && is_simple=0
+[[ "$opaque" == 1 ]] && is_simple=0
+echo "$cmd" | grep -Eq '&&|\|\||[;|]' && is_simple=0
 
-first=$(echo "$cmd" | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]+[[:space:]]+)*//' | awk '{print $1}')
+word_of(){ echo "$1" | sed -E 's/^[[:space:]]*//; s/^([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]+[[:space:]]+)*//' | awk '{print $1}'; }
+git_sub_of(){ echo "$1" | sed -E 's/^[[:space:]]*git[[:space:]]+//' \
+  | sed -E 's/^((-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--git-dir=[^[:space:]]+|--work-tree=[^[:space:]]+|--no-pager|--paginate|-p)[[:space:]]+)*//' \
+  | awk '{print $1}'; }
 
-# ── merge / rebase ──
-#
-# `(merge|rebase)([[:space:]]|$)` rather than \b: \b matches before the hyphen
-# in merge-base and rebase-related plumbing, which are read-only.
-if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(merge|rebase)([[:space:]]|$)'; then
-  op=$(echo "$cmd" | grep -oE '(merge|rebase)([[:space:]]|$)' | head -1 | tr -d '[:space:]')
-  args=$(echo "$cmd" | sed -E "s/.*[[:space:]]${op}([[:space:]]|\$)//")
+first=$(word_of "$cmd")
 
-  # --abort/--continue/etc. steer an in-flight operation; they resolve local
-  # state and never reach a remote, so they sit in the local tier.
-  ctl=0
-  echo "$args" | grep -Eq -- '--(abort|quit|continue|skip|edit-todo|show-current-patch)\b' && ctl=1
+# Segments that read, filter, or write only in ways already in the allow tier.
+# Excludes push/pull/tag/reset/clean/checkout/restore/rm, and anything that
+# runs a command handed to it (xargs, eval, sh, find -exec).
+seg_filters='cat|head|tail|less|more|grep|egrep|fgrep|rg|jq|yq|wc|sort|uniq|cut|tr|awk|sed|column|nl|fold|rev|tac|echo|printf|true|date|basename|dirname|pbcopy|cd|pwd|ls'
+seg_git='status|log|diff|show|reflog|shortlog|whatchanged|blame|describe|rev-parse|rev-list|merge-base|name-rev|symbolic-ref|var|cat-file|ls-files|ls-tree|for-each-ref|count-objects|grep|fetch|add|commit|switch|branch|stash|worktree|cherry-pick|revert|mv|config|remote'
+# A block that has already validated its own subcommand against the remote and
+# marker rules adds it here before asking whether the rest of the line is safe.
+seg_extra_git=''
 
-  remotes=$(git -C "$gitdir" remote 2>/dev/null | paste -sd'|' -)
-  [[ -z "$remotes" ]] && remotes='origin|upstream'
-  is_remote=0
-  if [[ "$ctl" == 0 ]]; then
-    echo "$args" | grep -Eq "(^|[[:space:]=])($remotes)/"           && is_remote=1
-    echo "$args" | grep -Eq '(^|[[:space:]=])(FETCH_HEAD|refs/remotes/)' && is_remote=1
-    echo "$args" | grep -Eq '(https?://|git@|ssh://|git://)'        && is_remote=1
-    # Bare `git rebase` rebases onto @{upstream} — a remote-tracking ref.
-    if [[ "$op" == rebase ]] && ! echo "$args" | tr ' ' '\n' | grep -qE '^[^-][^[:space:]]*'; then
-      is_remote=1
-    fi
+segment_ok(){
+  local seg="$1" w
+  echo "$seg" | grep -Eq -- '--no-verify\b' && return 1
+  w=$(word_of "$seg")
+  [[ -z "$w" ]] && return 0
+  if [[ "$w" == git ]]; then
+    git_sub_of "$seg" | grep -Eq "^(${seg_git}${seg_extra_git:+|$seg_extra_git})$"
+    return
   fi
+  echo "$w" | grep -Eq "^(${seg_filters})$"
+}
 
-  if [[ "$is_remote" == 1 && "$op" == merge ]]; then
-    emit deny "Remote merge is denied permanently — no marker file enables it.
-If YOU run this yourself: git replays the remote-tracking ref's commits into ${cur:-your current branch} and writes a merge commit (or fast-forwards). Nothing is sent to the server, but your local history changes and the next push carries those commits; conflicts can land in your working tree. Undo with 'git merge --abort' mid-conflict, or 'git reset --hard ORIG_HEAD' once it has committed."
-  fi
-  if [[ "$is_remote" == 1 && "$op" == rebase ]]; then
-    emit deny "Remote rebase is denied permanently — no marker file enables it.
-If YOU run this yourself: git rewrites your local commits on top of the remote ref, giving each replayed commit a NEW sha. ${cur:-Your branch} then diverges from its pushed copy, so the next push is rejected unless forced. Undo with 'git rebase --abort' mid-flight, or 'git reset --hard ORIG_HEAD' after it finishes."
-  fi
-
-  [[ "$merge_off" == 1 ]] &&
-    emit deny "Local git $op blocked — this repo is opted out (.claude-merge-off). Re-enable with: claude-gate merge on"
-  # A compound command can hide anything after the merge, so it still asks.
-  [[ "$is_simple" == 1 ]] && emit allow "Local git $op — target is not a remote ref."
-  emit ask "Local git $op inside a compound command — check what else the line does."
-fi
-
-# ── branch switch with a dirty tree ──
-#
-# Uncommitted changes follow you across a switch and land on the branch you
-# arrive at, quietly mixing unrelated work together. A worktree gives the new
-# branch its own checkout and leaves the dirty one untouched.
-if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(switch|checkout)([[:space:]]|$)'; then
-  sw=$(echo "$cmd" | grep -oE '(switch|checkout)([[:space:]]|$)' | head -1 | tr -d '[:space:]')
-  swargs=$(echo "$cmd" | sed -E "s/.*[[:space:]]${sw}([[:space:]]|\$)//")
-  target=$(echo "$swargs" | tr ' ' '\n' | grep -vE '^-|^$' | head -1)
-
-  # `git checkout -- <path>` and `git checkout <path>` restore files and change
-  # no branch, so they are none of this gate's business. git switch takes no
-  # paths, so only checkout needs the distinction.
-  restore=0
-  if [[ "$sw" == checkout ]]; then
-    echo "$swargs" | grep -Eq '(^|[[:space:]])--([[:space:]]|$)' && restore=1
-    [[ -n "$target" && -e "$gitdir/$target" ]] \
-      && ! git -C "$gitdir" show-ref --verify --quiet "refs/heads/$target" && restore=1
-  fi
-
-  if [[ "$restore" == 0 && -n "$repo_root" && -n "$target" && "$target" != "$cur" ]]; then
-    dirty=$(git -C "$gitdir" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')
-    if [[ "${dirty:-0}" -gt 0 ]]; then
-      emit ask "$dirty uncommitted file(s) will follow this switch onto '$target' and become part of that branch's work.
-If they belong to ${cur:-the branch you are on}, leave them here and give the new work its own checkout:
-  git worktree add ../$(basename "$repo_root")-${target//\//-} -b $target
-Approve only if the uncommitted changes are meant to move."
-    fi
-  fi
-fi
+can_allow(){
+  [[ "$opaque" == 1 ]] && return 1
+  [[ "$is_simple" == 1 ]] && return 0
+  local seg
+  while IFS= read -r seg; do
+    segment_ok "$seg" || return 1
+  done < <(echo "$cmd" | awk '{gsub(/\|\||&&|;|\|/,"\n"); print}')
+  return 0
+}
 
 # ── DENY backstop (always, no opt-in) ──
+#
+# Runs before any block that can emit `allow`, so a compound line pairing an
+# allowable command with a denied one is denied on the denied half.
 
 if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+push\b'; then
   echo "$cmd" | grep -Eq '(--force-with-lease|--force|[[:space:]]-[a-zA-Z]*f)\b' \
@@ -182,7 +160,9 @@ If YOU run this yourself: git fetches, then replays your local commits on top of
   echo "$cmd" | grep -Eq -- '[[:space:]]--ff-only([[:space:]]|$)' \
     || emit deny "plain git pull merges a remote ref into ${cur:-your branch} — denied permanently.
 If YOU run this yourself: git fetches, then merges the remote branch into yours, writing a merge commit whenever the two have diverged. Use 'git pull --ff-only', which is allowed, to refuse anything that is not a clean fast-forward."
-  [[ "$is_simple" == 1 ]] && emit allow "git pull --ff-only writes only locally — it fast-forwards or fails."
+  seg_extra_git='pull'
+  can_allow && emit allow "git pull --ff-only writes only locally — it fast-forwards or fails."
+  seg_extra_git=''
   remote_gate "Remote write (pull --ff-only, compound command)"
 fi
 
@@ -196,10 +176,89 @@ echo "$cmd" | grep -Eq '\bgit\b.*\bclean\b.*-[a-zA-Z]*f'     && emit deny "git c
 echo "$cmd" | grep -Eq '\brm\b[^|;&]*-[a-zA-Z]*(rf|fr)'      && emit deny "rm -rf is not allowed."
 echo "$cmd" | grep -Eq '\bshred\b'                           && emit deny "shred irreversibly destroys files — run it yourself."
 
-# ── REMOTE backstop (gh in compound commands) ──
+# ── REMOTE backstop (gh anywhere in the line) ──
 
 if echo "$cmd" | grep -Eq '\bgh\b'; then
   remote_gate "gh CLI command"
+fi
+
+# ── merge / rebase ──
+#
+# `(merge|rebase)([[:space:]]|$)` rather than \b: \b matches before the hyphen
+# in merge-base and rebase-related plumbing, which are read-only.
+if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(merge|rebase)([[:space:]]|$)'; then
+  remotes=$(git -C "$gitdir" remote 2>/dev/null | paste -sd'|' -)
+  [[ -z "$remotes" ]] && remotes='origin|upstream'
+
+  # Each merge/rebase segment is tested on its own arguments — reading to the
+  # end of the line would mistake a URL in a later command for a remote ref.
+  op=""; is_remote=0
+  while IFS= read -r seg; do
+    s=$(git_sub_of "$seg")
+    case "$s" in merge|rebase) ;; *) continue ;; esac
+    [[ -z "$op" ]] && op="$s"
+    args=$(echo "$seg" | sed -E "s/.*[[:space:]]${s}([[:space:]]|\$)//")
+
+    # --abort/--continue/etc. steer an in-flight operation; they resolve local
+    # state and never reach a remote, so they sit in the local tier.
+    echo "$args" | grep -Eq -- '--(abort|quit|continue|skip|edit-todo|show-current-patch)\b' && continue
+
+    echo "$args" | grep -Eq "(^|[[:space:]=])($remotes)/"                && { op="$s"; is_remote=1; break; }
+    echo "$args" | grep -Eq '(^|[[:space:]=])(FETCH_HEAD|refs/remotes/)' && { op="$s"; is_remote=1; break; }
+    echo "$args" | grep -Eq '(https?://|git@|ssh://|git://)'             && { op="$s"; is_remote=1; break; }
+    # Bare `git rebase` rebases onto @{upstream} — a remote-tracking ref.
+    if [[ "$s" == rebase ]] && ! echo "$args" | tr ' ' '\n' | grep -qE '^[^-][^[:space:]]*'; then
+      op="$s"; is_remote=1; break
+    fi
+  done < <(echo "$cmd" | awk '{gsub(/\|\||&&|;|\|/,"\n"); print}')
+  [[ -z "$op" ]] && op=merge
+
+  if [[ "$is_remote" == 1 && "$op" == merge ]]; then
+    emit deny "Remote merge is denied permanently — no marker file enables it.
+If YOU run this yourself: git replays the remote-tracking ref's commits into ${cur:-your current branch} and writes a merge commit (or fast-forwards). Nothing is sent to the server, but your local history changes and the next push carries those commits; conflicts can land in your working tree. Undo with 'git merge --abort' mid-conflict, or 'git reset --hard ORIG_HEAD' once it has committed."
+  fi
+  if [[ "$is_remote" == 1 && "$op" == rebase ]]; then
+    emit deny "Remote rebase is denied permanently — no marker file enables it.
+If YOU run this yourself: git rewrites your local commits on top of the remote ref, giving each replayed commit a NEW sha. ${cur:-Your branch} then diverges from its pushed copy, so the next push is rejected unless forced. Undo with 'git rebase --abort' mid-flight, or 'git reset --hard ORIG_HEAD' after it finishes."
+  fi
+
+  [[ "$merge_off" == 1 ]] &&
+    emit deny "Local git $op blocked — this repo is opted out (.claude-merge-off). Re-enable with: claude-gate merge on"
+  seg_extra_git='merge|rebase'
+  can_allow && emit allow "Local git $op — target is not a remote ref."
+  seg_extra_git=''
+  emit ask "Local git $op sits beside a command this gate does not recognise — check the whole line."
+fi
+
+# ── branch switch with a dirty tree ──
+#
+# Uncommitted changes follow you across a switch and land on the branch you
+# arrive at, quietly mixing unrelated work together. A worktree gives the new
+# branch its own checkout and leaves the dirty one untouched.
+if echo "$cmd" | grep -Eq '\bgit\b([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+(switch|checkout)([[:space:]]|$)'; then
+  sw=$(echo "$cmd" | grep -oE '(switch|checkout)([[:space:]]|$)' | head -1 | tr -d '[:space:]')
+  swargs=$(echo "$cmd" | sed -E "s/.*[[:space:]]${sw}([[:space:]]|\$)//")
+  target=$(echo "$swargs" | tr ' ' '\n' | grep -vE '^-|^$' | head -1)
+
+  # `git checkout -- <path>` and `git checkout <path>` restore files and change
+  # no branch, so they are none of this gate's business. git switch takes no
+  # paths, so only checkout needs the distinction.
+  restore=0
+  if [[ "$sw" == checkout ]]; then
+    echo "$swargs" | grep -Eq '(^|[[:space:]])--([[:space:]]|$)' && restore=1
+    [[ -n "$target" && -e "$gitdir/$target" ]] \
+      && ! git -C "$gitdir" show-ref --verify --quiet "refs/heads/$target" && restore=1
+  fi
+
+  if [[ "$restore" == 0 && -n "$repo_root" && -n "$target" && "$target" != "$cur" ]]; then
+    dirty=$(git -C "$gitdir" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "${dirty:-0}" -gt 0 ]]; then
+      emit ask "$dirty uncommitted file(s) will follow this switch onto '$target' and become part of that branch's work.
+If they belong to ${cur:-the branch you are on}, leave them here and give the new work its own checkout:
+  git worktree add ../$(basename "$repo_root")-${target//\//-} -b $target
+Approve only if the uncommitted changes are meant to move."
+    fi
+  fi
 fi
 
 # ── git classification ──
@@ -211,40 +270,40 @@ if [[ "$first" == "git" ]]; then
   case "$sub" in
     status|log|diff|show|reflog|shortlog|whatchanged|blame|describe|rev-parse|rev-list|\
     merge-base|name-rev|symbolic-ref|var|cat-file|ls-files|ls-tree|ls-remote|for-each-ref|count-objects|grep|fetch)
-      [[ "$is_simple" == 1 ]] && emit allow "Read-only git command." ;;
+      can_allow && emit allow "Read-only git command." ;;
     add|commit|switch|checkout|restore|reset|cherry-pick|revert|rm|mv|am|apply|submodule|worktree|clean)
-      [[ "$is_simple" == 1 ]] && emit allow "Local git write command." ;;
+      can_allow && emit allow "Local git write command." ;;
     branch)
       if echo "$cmd" | grep -Eq '\-(d|D|m|M|-delete|-force)\b'; then
-        [[ "$is_simple" == 1 ]] && emit allow "Local git branch write."
+        can_allow && emit allow "Local git branch write."
       else
-        [[ "$is_simple" == 1 ]] && emit allow "git branch listing."
+        can_allow && emit allow "git branch listing."
       fi ;;
-    tag)     [[ "$is_simple" == 1 ]] && emit allow "git tag listing." ;;
+    tag)     can_allow && emit allow "git tag listing." ;;
     config)
       if echo "$cmd" | grep -Eq 'config[[:space:]].*(--get|--list|-l|(^| )get( |$))'; then
-        [[ "$is_simple" == 1 ]] && emit allow "git config (read)."
+        can_allow && emit allow "git config (read)."
       else
-        [[ "$is_simple" == 1 ]] && emit allow "Local git config write."
+        can_allow && emit allow "Local git config write."
       fi ;;
     remote)
       if echo "$cmd" | grep -Eq 'remote([[:space:]]+(-v|show|get-url[^;&|]*))?[[:space:]]*$'; then
-        [[ "$is_simple" == 1 ]] && emit allow "git remote (read)."
+        can_allow && emit allow "git remote (read)."
       else
-        [[ "$is_simple" == 1 ]] && emit allow "Local git remote config."
+        can_allow && emit allow "Local git remote config."
       fi ;;
     stash)
       if echo "$cmd" | grep -Eq 'stash[[:space:]]+(list|show)'; then
-        [[ "$is_simple" == 1 ]] && emit allow "git stash (read)."
+        can_allow && emit allow "git stash (read)."
       else
-        [[ "$is_simple" == 1 ]] && emit allow "Local git write command."
+        can_allow && emit allow "Local git write command."
       fi ;;
   esac
   exit 0
 fi
 
 # touch / mkdir are pure create
-if [[ "$first" == "touch" || "$first" == "mkdir" ]] && [[ "$is_simple" == 1 ]]; then
+if [[ "$first" == "touch" || "$first" == "mkdir" ]] && can_allow; then
   emit allow "Creating files/directories."
 fi
 
@@ -265,7 +324,7 @@ if [[ -n "$(echo "$targets" | tr -d '[:space:]')" ]]; then
     emit ask "Redirect/tee targets an existing file — would overwrite/modify it. Approve only if intended."
   fi
   base=$(basename "$first" 2>/dev/null || echo "$first")
-  if [[ "$any_new" == 1 && "$is_simple" == 1 ]] && ! echo "$base" | grep -Eq '^(rm|rmdir|mv|cp|chmod|chown|chgrp|ln|truncate|sed|dd|shred|git|gh)$'; then
+  if [[ "$any_new" == 1 ]] && can_allow && ! echo "$base" | grep -Eq '^(rm|rmdir|mv|cp|chmod|chown|chgrp|ln|truncate|sed|dd|shred|git|gh)$'; then
     emit allow "Creating a new file (target does not exist)."
   fi
 fi
