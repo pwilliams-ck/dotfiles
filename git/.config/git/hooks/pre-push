@@ -4,8 +4,8 @@
 # invoked git — Makefiles, npm scripts, and repo hooks inherit CLAUDECODE,
 # closing the "push inside a script" hole that command-text gates can't see.
 #
-# Claude sessions may push ordinary branches, and only in repos that opted in
-# with a .claude-remote-ok marker in the repo root (the same marker
+# Claude sessions may push ordinary branches, except in repos opted out with a
+# .claude-remote-off marker in the repo root (the same marker
 # bash-write-gate.sh reads). Trunk, tags, deletions, and non-fast-forward
 # pushes stay human-only regardless of the marker.
 #
@@ -27,11 +27,11 @@ deny() {
 }
 
 if [ -n "$CLAUDECODE" ]; then
-    # --show-toplevel, matching bash-write-gate.sh, so a worktree opts in
+    # --show-toplevel, matching bash-write-gate.sh, so a worktree opts out
     # independently of its parent checkout.
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-    [ -n "$repo_root" ] && [ -f "$repo_root/.claude-remote-ok" ] ||
-        deny "repo has not opted in (add .claude-remote-ok to the repo root)"
+    [ -n "$repo_root" ] && [ -f "$repo_root/.claude-remote-off" ] &&
+        deny "this repo is opted out of remote writes (.claude-remote-off); re-enable with 'claude-gate remote on'"
 
     while read -r local_ref local_sha remote_ref remote_sha; do
         [ -z "$remote_ref" ] && continue

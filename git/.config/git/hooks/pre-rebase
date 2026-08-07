@@ -1,0 +1,42 @@
+#!/bin/sh
+# Global pre-rebase (core.hooksPath): second layer under bash-write-gate.sh.
+# Humans in a terminal are unaffected. Runs inside git, so it also catches a
+# rebase buried in a Makefile, an npm script, or `git pull --rebase`, which
+# command-text inspection cannot see.
+#
+# Tiers, matching bash-write-gate.sh:
+#   upstream is a remote ref -> deny, always. No marker changes it.
+#   otherwise                -> allowed, unless the repo root carries a
+#                               .claude-merge-off marker.
+#
+# Args: $1 = upstream, $2 = branch being rebased (absent when it is HEAD).
+# `git pull --rebase` passes the fetched commit by sha, not by name, so the
+# upstream is also checked against the refs that point at it.
+#
+# Known bypasses: `git rebase --no-verify`, and a repo-local core.hooksPath
+# such as husky, which overrides the global one for that repo.
+
+. "$(dirname "$0")/lib-claude-gate.sh"
+
+deny() {
+    echo "pre-rebase: blocked — $1" >&2
+    echo "pre-rebase: nothing has been rewritten yet. If you want this, run it yourself in a plain terminal." >&2
+    exit 1
+}
+
+if [ -n "$CLAUDECODE" ]; then
+    case "$GIT_REFLOG_ACTION" in
+        pull*) deny "'git $GIT_REFLOG_ACTION' rebases your commits onto a REMOTE branch, giving each a new sha; your branch then diverges from its pushed copy and the next push needs --force" ;;
+    esac
+
+    cg_is_remote_ref "$1" &&
+        deny "rebasing onto $1 rewrites your commits with new shas on top of a REMOTE branch; your branch then diverges from its pushed copy and the next push needs --force"
+
+    cg_opted_out .claude-merge-off &&
+        deny "this repo is opted out of local rebase (.claude-merge-off); re-enable with 'claude-gate merge on'"
+fi
+
+# core.hooksPath replaces .git/hooks entirely — chain to the repo's own hook.
+repo_hook="$(git rev-parse --git-dir)/hooks/pre-rebase"
+[ -x "$repo_hook" ] && exec "$repo_hook" "$@"
+exit 0

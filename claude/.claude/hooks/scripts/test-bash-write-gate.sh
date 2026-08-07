@@ -25,22 +25,20 @@ check() { # $1=desc $2=cwd $3=cmd $4=expected decision (deny|ask|allow|defer)
 
 # Regressions that must keep working
 check "commit on main (plain) denied"            "$T/repoA" 'git commit -m "x: y"'                     deny
-check "commit on feature (plain) asks"           "$T/repoB" 'git commit -m "x: y"'                     ask
 check "push from main denied"                    "$T/repoA" 'git push'                                 deny
 check "push explicit main denied"                "$T/repoB" 'git push origin main'                     deny
-check "merge denied"                             "$T/repoB" 'git merge feat/y'                         deny
+check "local merge allowed by default"           "$T/repoB" 'git merge feat/y'                         allow
+check "remote merge denied"                      "$T/repoB" 'git merge origin/feat/y'                  deny
+check "remote rebase denied"                     "$T/repoB" 'git rebase origin/feat/y'                 deny
+check "plain pull denied"                        "$T/repoB" 'git pull'                                 deny
 check "tag create denied"                        "$T/repoB" 'git tag v1.0.0'                           deny
 check "force push denied"                        "$T/repoB" 'git push --force'                         deny
 check "read-only git allowed"                    "$T/repoB" 'git status'                               allow
-check "git -C feature commit asks"               "$T/repoA" "git -C $T/repoB commit -m 'x: y'"         ask
 check "git -C main commit denied"                "$T/repoB" "git -C $T/repoA commit -m 'x: y'"         deny
 
-# The misfire class from insights: cd-prefixed compounds resolve against
-# the WRONG repo (session cwd instead of the cd target).
-check "cd feature && commit asks (no misfire)"   "$T/repoA" "cd $T/repoB && git commit -m 'x: y'"      ask
+# The misfire class from insights: cd-prefixed compounds must resolve against
+# the cd target, not the session cwd.
 check "cd main && commit denied (no miss)"       "$T/repoB" "cd $T/repoA && git commit -m 'x: y'"      deny
-check "cd feature && push asks (no misfire)"     "$T/repoA" "cd $T/repoB && git push"                  ask
-check "cd quoted feature && commit asks"         "$T/repoA" "cd \"$T/repoB\" && git commit -m 'x: y'"  ask
 
 echo "---"
 echo "$pass passed, $fail failed"

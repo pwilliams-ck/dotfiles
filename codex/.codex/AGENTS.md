@@ -20,19 +20,36 @@
 
 ## Source control
 
-- Never merge or rebase — locally or via `gh pr merge`. No exceptions.
-- Remote-mutating commands (`git push`, `gh pr create`) require explicit ask. The permission gates enforce this mechanically; this rule is defense-in-depth.
+- **Never integrate from a remote.** No `git merge origin/…`, no `git rebase origin/…`, no `git pull` or `git pull --rebase`, no `gh pr merge`. These are denied permanently and no toggle enables them. If one is genuinely needed, stop and tell me the exact command and what it will do to my tree — I will run it.
+- Local merge and rebase are allowed without a prompt, as long as the target is a local ref. Inside a compound command they ask instead, because the rest of the line is unreviewed.
+- Local staging, committing, branching, and stashing run without a prompt. Committing on `main`/`master` is denied — branch first.
+- `git push` and `gh` ask every time. `git pull --ff-only` is allowed outright: it advances a branch pointer or fails, so it can neither write a merge commit nor rewrite a sha.
+- Never work around a gate. `--no-verify`, a repo-local `core.hooksPath`, and hand-writing or deleting a marker file are all off limits; ask me instead.
 
-### Remote-write opt-in
+### Per-repo toggles
 
-Remote writes are denied by default. A repo opts in with an empty `.claude-remote-ok` file in its root, which downgrades `git push` / `git pull` / `gh` from deny to ask. The marker is per repo — a worktree is its own root and opts in separately. It is covered by `~/.config/git/ignore`, so it never reaches a repo's tracked tree or shows up in `git status`.
+`claude-gate` shows a repo's toggles; `claude-gate <toggle> on|off` flips one and then offers the others, so a stale setting surfaces instead of lingering unnoticed.
 
-Two independent layers read it:
+| Toggle | Default | On | Off |
+| --- | --- | --- | --- |
+| `remote` | on | `git push`, `gh` ask | both denied |
+| `merge` | on | **local** merge/rebase allowed | both denied |
+| `review` | off | commit denied until the staged diff passes a fresh-context review | no review required |
 
-- `hooks/scripts/bash-write-gate.sh` — inspects the command text before the tool runs.
-- `~/.config/git/hooks/pre-push` — runs inside git, so it also catches pushes buried in Makefiles and npm scripts, which command-text inspection cannot see.
+`remote` and `merge` are on unless the repo root carries an opt-out marker — `.claude-remote-off` or `.claude-merge-off` — so turning one off writes a file and turning it back on removes it. `review` is the reverse: off unless the repo is listed in `~/.claude/hooks/review-gate-repos`.
 
-Even in an opted-in repo, the pre-push hook denies pushes to `main`/`master`, tags, branch deletions, and non-fast-forward (force) pushes. It decides from the ref list on stdin rather than the current branch, so `git push origin HEAD:master` is caught while on a feature branch. Both layers are bypassed by `git push --no-verify` (the write gate denies that flag) and by a repo-local `core.hooksPath` such as husky.
+The markers are per checkout, so a worktree tightens separately from its parent; the review toggle keys off the main checkout instead and is shared with its worktrees. `~/.config/git/ignore` covers the markers, so they never reach a repo's tracked tree or show up in `git status`.
+
+### The enforcement layers
+
+- `hooks/scripts/bash-write-gate.sh` — inspects command text before the tool runs. Fails closed: a crash denies the command.
+- `~/.config/git/hooks/{pre-push,pre-rebase,pre-merge-commit}` — run inside git, so they also catch operations buried in Makefiles, npm scripts, and `git pull`, which command-text inspection cannot see. They act only when `CLAUDECODE` is set, so my own terminal is unaffected.
+
+Whatever the toggles say, `pre-push` denies pushes to `main`/`master`, tags, branch deletions, and non-fast-forward pushes, deciding from the ref list on stdin rather than the current branch — so `git push origin HEAD:master` is caught from a feature branch. Known gaps, accepted: `--no-verify` skips all git hooks (the write gate denies that flag), a repo-local `core.hooksPath` such as husky overrides the global one, and a fast-forward merge writes no commit so `pre-merge-commit` never sees it.
+
+### Uncommitted work and worktrees
+
+Switching or creating a branch with a dirty tree drags the uncommitted changes onto the branch you arrive at. When that happens the gate asks first and suggests a `git worktree add` command — take the worktree unless the changes are genuinely meant to move.
 
 ## Comments
 

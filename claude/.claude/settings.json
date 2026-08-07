@@ -7,7 +7,6 @@
     "pr": ""
   },
   "permissions": {
-    "defaultMode": "auto",
     "allow": [
       "Bash",
       "Read(~/Notes/work-todo.md)"
@@ -15,10 +14,6 @@
     "deny": [
       "mcp__clickup",
       "mcp__atlassian",
-      "Bash(git merge:*)",
-      "Bash(git merge)",
-      "Bash(git rebase:*)",
-      "Bash(git rebase)",
       "Bash(gh pr merge:*)",
       "Bash(git reset --hard:*)",
       "Bash(rm -rf:*)",
@@ -37,7 +32,8 @@
       "Bash(mv:*)",
       "Bash(cp:*)",
       "Bash(sed -i:*)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "disableClaudeAiConnectors": true,
   "hooks": {
