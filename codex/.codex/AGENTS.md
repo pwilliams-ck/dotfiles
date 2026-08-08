@@ -1,5 +1,9 @@
 # Global Agent Instructions
 
+## Subagents
+
+- Default model for all Agent tool calls: `claude-sonnet-4-6[1m]`. Always pass `model: "sonnet"` unless a specific task demands a stronger model and I approve the upgrade.
+
 ## Working agreement
 
 - Do only what was asked. When you spot an adjacent bug or smell, surface it and ask before expanding scope.
