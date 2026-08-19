@@ -5523,6 +5523,49 @@
                 ]
               }
             ]
+          },
+          {
+            "description": "Layer 2: left_option+a/r -> Claude notification jump / dismiss",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "a",
+                  "modifiers": {
+                    "mandatory": [
+                      "left_option"
+                    ],
+                    "optional": [
+                      "caps_lock"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "shell_command": "$HOME/.claude/hooks/scripts/notify-jump.sh"
+                  }
+                ]
+              },
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "s",
+                  "modifiers": {
+                    "mandatory": [
+                      "left_option"
+                    ],
+                    "optional": [
+                      "caps_lock"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "shell_command": "$HOME/.claude/hooks/scripts/notify-dismiss.sh"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },

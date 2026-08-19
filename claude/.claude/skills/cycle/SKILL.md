@@ -61,8 +61,12 @@ it never relaxes them.
 | Role | Model | Job |
 |------|-------|-----|
 | Head | session model | Plan, sequence, review, own git and TODO/. |
-| Implementation worker | `claude-opus-4-6[1m]`, `--effort max` | Execute one sub-task in a tmux pane. |
+| Implementation worker | `<worker-model>` at `<worker-effort>` (defined below) | Execute one sub-task in a tmux pane. |
 | Lookups | default | Greps, quick doc checks via `Agent()`. |
+
+**`<worker-model>`** = this session's model, or one tier lower (Fable → Opus → Sonnet → Haiku). Never Fable. **`<worker-effort>`** = this session's effort; if unknown, omit the `--effort` flag. **Never `--effort max`.**
+
+**Hard caps, all modes:** never more than **4** agents/workers live at once (tmux workers and `Agent()` subagents combined), and every worker seed must carry both caps so workers can't fan out either.
 
 Implementation workers run as `claude` CLI sessions in a split pane (see phase 2). Lookups use `Agent()` with default model. **Never spawn Fable subagents.**
 
@@ -152,7 +156,7 @@ For larger sub-tasks, spawn an implementation worker in a split pane — same me
 ```bash
 mkdir -p TODO/reports
 pane=$(tmux split-window -P -F '#{pane_id}' -c "$PWD" \
-  "claude --model 'claude-opus-4-6[1m]' --effort max")
+  "claude --model '<worker-model>' --effort <worker-effort>")   # model/effort per Model tiers; drop --effort if unknown
 ```
 
 Launch with **no positional prompt** and deliver the seed by tmux buffer, exactly as `--spawn` step 4 — a seed passed as a command argument is silently swallowed.
@@ -210,8 +214,8 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    test failure it has to diagnose before it can start.
 4. **Spawn sessions** — all workers go in **one new tmux window, one pane
    each**, so the user can watch and answer every prompt without switching
-   windows. Requires `$TMUX`; if unset, stop and say so. Use the exact model id
-   this session runs on. Seed prompt per worker:
+   windows. Requires `$TMUX`; if unset, stop and say so. Model and effort per
+   **Model tiers** (`<worker-model>`, `<worker-effort>`). Seed prompt per worker:
    > Read TODO/taskNN-<slug>.md — execute all sub-tasks (approval-gated
    > commits). When done: push, offer gh pr create, then run /handoff so the
    > task file's Handoff section carries what landed and any surprises. Then
@@ -221,7 +225,9 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    > number if opened), and only once it is fully written and closed:
    > `touch <main-path>/TODO/reports/taskNN.done`. If the supervisor sends
    > rework, address it and re-report the same way (overwrite both files).
-   > Context budget: 15% nudge, never exceed 20%.
+   > Context budget: 15% nudge, never exceed 20%. Hard caps: never more than
+   > 4 subagents/workers total, never `--effort max`, and do implementation
+   > work yourself rather than delegating it.
 
    First worker creates the window, the rest split it. Launch `claude` with
    **no positional prompt** and no `--allowedTools` flags — local `git add` /
@@ -230,7 +236,7 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    handling, which swallows the seed:
 
    ```bash
-   m="claude --model <model-id> --effort max"
+   m="claude --model <worker-model> --effort <worker-effort>"   # drop --effort if unknown
    win=$(tmux new-window -P -F '#{window_id}' -n cycle -c <worktree-1> "$m")
    p1=$(tmux list-panes -t "$win" -F '#{pane_id}')
    p2=$(tmux split-window -P -F '#{pane_id}' -t "$win" -c <worktree-2> "$m")
@@ -387,7 +393,7 @@ coin flip.
    ```bash
    mkdir -p TODO/reports
    win=$(tmux new-window -P -F '#{window_id}' -n contest -c "$PWD" \
-     "claude --model 'claude-opus-4-6[1m]' --effort max")
+     "claude --model '<worker-model>' --effort <worker-effort>")
    spec_pane=$(tmux list-panes -t "$win" -F '#{pane_id}')
    tmux select-pane -t "$spec_pane" -T taskNN-spec   # readability only, never logic
    ```

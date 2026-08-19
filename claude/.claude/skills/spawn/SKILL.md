@@ -1,6 +1,6 @@
 ---
 name: spawn
-description: Open a new interactive Claude Code session in a new tmux window (like prefix+c) of the current tmux session, running Opus 4.6 (1M) at max effort. Seeds it with a handoff pickup (task file's Handoff section, or HANDOFF.md) and a 15%/20% context-budget rule; optional argument appends the task, e.g. /spawn, /spawn "continue task 07c2".
+description: Open a new interactive Claude Code session in a new tmux window (like prefix+c) of the current tmux session, running this session's model and effort (never max). Seeds it with a handoff pickup (task file's Handoff section, or HANDOFF.md) and a 15%/20% context-budget rule; optional argument appends the task, e.g. /spawn, /spawn "continue task 07c2".
 ---
 
 ## Help
@@ -9,11 +9,11 @@ If `$ARGUMENTS` is exactly `--help`, `help`, or `-h`, print the block below
 verbatim and **stop — do not execute the skill**.
 
 ```
-/spawn — open a new Claude Code session in a new tmux window (Opus 4.6 1M, max effort)
+/spawn — open a new Claude Code session in a new tmux window (same model/effort)
 
   Open a new interactive Claude Code session in a new tmux window (like
-  prefix+c) of the current tmux session, running Opus 4.6 (1M) at max
-  effort. Seeds it with a handoff pickup (if present) and a 15%/20%
+  prefix+c) of the current tmux session, running this session's model and
+  effort (never max). Seeds it with a handoff pickup (if present) and a 15%/20%
   context-budget rule; optional argument appends the task.
 
   /spawn                         new session, picks up the existing handoff
@@ -29,7 +29,7 @@ verbatim and **stop — do not execute the skill**.
 
 # Spawn a sibling Claude Code session
 
-Open a fresh interactive `claude` in a **new window of the current tmux session**, running `claude-opus-4-6[1m]` at `--effort max`, then confirm the window exists.
+Open a fresh interactive `claude` in a **new window of the current tmux session**, running the exact model id this session runs on (or one tier lower — Fable → Opus → Sonnet → Haiku — never Fable) at this session's effort. If the effort is unknown, omit the `--effort` flag. **Never `--effort max`.** Then confirm the window exists.
 
 ## 1. Preconditions
 
@@ -53,6 +53,9 @@ The new session always starts with an initial prompt composed of, in order:
    > total: treat 15% as the signal to gauge remaining work and wind down —
    > finish or checkpoint the current sub-task and leave a concrete next step
    > in the handoff. Never leave a task or sub-task hanging with no plan there.
+   > Hard caps: never more than 4 subagents/workers total, never
+   > `--effort max`, and do implementation work yourself rather than
+   > delegating it.
 
 3. **Next command** — when `$ARGUMENTS` is empty, route via
    `~/.claude/skills/shared/next-command.md` and append the resulting command
@@ -71,7 +74,7 @@ target for verification:
 
 ```bash
 read -r pane target <<<"$(tmux new-window -P -F '#{pane_id} #{session_name}:#{window_index}' \
-  -n cc -c "$PWD" "claude --model 'claude-opus-4-6[1m]' --effort max")"
+  -n cc -c "$PWD" "claude --model '<model-id>' --effort <effort>")"   # per the rule above; drop --effort if unknown
 ```
 
 Then deliver the seed by tmux buffer, which has no quoting surface:

@@ -3,6 +3,8 @@
 ## Subagents
 
 - Default model for all Agent tool calls: `claude-sonnet-4-6[1m]`. Always pass `model: "sonnet"` unless a specific task demands a stronger model and I approve the upgrade.
+- Never more than 4 agents/workers total per session — subagents, tmux workers, and spawned sessions combined. If the work doesn't fit in 4, do it yourself or ask me.
+- Never launch anything with `--effort max`. Workers and spawned sessions run at this session's effort (omit the flag if unknown) on this session's model or one tier lower.
 
 ## Working agreement
 
