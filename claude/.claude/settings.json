@@ -137,6 +137,9 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "enableWorkflows": false,
   "workflowKeywordTriggerEnabled": false,
   "statusLine": {
@@ -157,12 +160,14 @@
     }
   },
   "effortLevel": "high",
+  "askUserQuestionTimeout": "60s",
   "tui": "fullscreen",
   "editorMode": "vim",
   "verbose": false,
-  "preferredNotifChannel": "auto",
+  "preferredNotifChannel": "iterm2_with_bell",
   "autoCompactEnabled": false,
   "switchModelsOnFlag": false,
+  "autoContinueAtUsageLimit": false,
   "autoScrollEnabled": true,
   "wheelScrollAccelerationEnabled": false,
   "fileCheckpointingEnabled": true,

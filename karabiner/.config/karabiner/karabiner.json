@@ -5525,12 +5525,12 @@
             ]
           },
           {
-            "description": "Layer 2: left_option+a/r -> Claude notification jump / dismiss",
+            "description": "Layer 2: left_option+]/s -> Claude notification jump / dismiss",
             "manipulators": [
               {
                 "type": "basic",
                 "from": {
-                  "key_code": "a",
+                  "key_code": "close_bracket",
                   "modifiers": {
                     "mandatory": [
                       "left_option"
