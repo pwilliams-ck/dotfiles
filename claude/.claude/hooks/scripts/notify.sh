@@ -18,6 +18,7 @@ if [ ! -d "$app" ]; then
   osacompile -o "$app" "$src" &&
     plutil -replace CFBundleIdentifier -string "io.cloudkey.pwilliams.claudenotify" "$app/Contents/Info.plist" &&
     plutil -replace CFBundleName -string "ClaudeNotify" "$app/Contents/Info.plist" &&
+    plutil -replace LSUIElement -bool true "$app/Contents/Info.plist" &&
     codesign --force --sign - "$app" || {
     rm -rf "$app"
     osascript -e "display notification \"$msg\" with title \"Claude Code — waiting\""
