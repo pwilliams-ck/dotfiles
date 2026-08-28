@@ -27,9 +27,9 @@
 ## Source control
 
 - **Never integrate from a remote.** No `git merge origin/…`, no `git rebase origin/…`, no `git pull` or `git pull --rebase`, no `gh pr merge`. These are denied permanently and no toggle enables them. If one is genuinely needed, stop and tell me the exact command and what it will do to my tree — I will run it.
-- Local merge and rebase are allowed without a prompt, as long as the target is a local ref. A compound line is judged segment by segment: `git merge x | tail -6` and `git add -A && git commit -m x` run unprompted, while a segment the gate does not recognise makes the whole line ask.
-- Local staging, committing, branching, and stashing run without a prompt. Committing on `main`/`master` is denied — branch first.
-- `git push` and `gh` ask every time. `git pull --ff-only` is allowed outright: it advances a branch pointer or fails, so it can neither write a merge commit nor rewrite a sha.
+- All local git mutations — staging, committing, branching, stashing, merging, rebasing — ask before running. Committing on `main`/`master` is denied — branch first.
+- Read-only git and gh commands (log, diff, status, show, blame, pr view, issue list, etc.) run without a prompt.
+- `git push` and mutating `gh` commands ask every time. `git pull --ff-only` is allowed outright: it advances a branch pointer or fails, so it can neither write a merge commit nor rewrite a sha.
 - Never work around a gate. `--no-verify`, a repo-local `core.hooksPath`, and hand-writing or deleting a marker file are all off limits; ask me instead.
 
 ### Per-repo toggles
@@ -39,7 +39,7 @@
 | Toggle | Default | On | Off |
 | --- | --- | --- | --- |
 | `remote` | on | `git push`, `gh` ask | both denied |
-| `merge` | on | **local** merge/rebase allowed | both denied |
+| `merge` | on | **local** merge/rebase ask | both denied |
 | `review` | off | commit denied until the staged diff passes a fresh-context review | no review required |
 
 `remote` and `merge` are on unless the repo root carries an opt-out marker — `.claude-remote-off` or `.claude-merge-off` — so turning one off writes a file and turning it back on removes it. `review` is the reverse: off unless the repo is listed in `~/.claude/hooks/review-gate-repos`.
@@ -50,6 +50,7 @@ The markers are per checkout, so a worktree tightens separately from its parent;
 
 - `hooks/scripts/bash-write-gate.sh` — inspects command text before the tool runs. Fails closed: a crash denies the command.
 - `~/.config/git/hooks/{pre-push,pre-rebase,pre-merge-commit}` — run inside git, so they also catch operations buried in Makefiles, npm scripts, and `git pull`, which command-text inspection cannot see. They act only when `CLAUDECODE` is set, so my own terminal is unaffected.
+- `~/.config/git/hooks/pre-commit` — the human-side review gate. Runs for ALL commits (no `CLAUDECODE` guard) in repos opted into `review`, so both Claude and terminal commits meet the same turnstile. Kill switches: `~/.claude/hooks/.disabled`, `~/.claude/hooks/.no-review-gate`.
 
 Whatever the toggles say, `pre-push` denies pushes to `main`/`master`, tags, branch deletions, and non-fast-forward pushes, deciding from the ref list on stdin rather than the current branch — so `git push origin HEAD:master` is caught from a feature branch. Known gaps, accepted: `--no-verify` skips all git hooks (the write gate denies that flag), a repo-local `core.hooksPath` such as husky overrides the global one, and a fast-forward merge writes no commit so `pre-merge-commit` never sees it.
 

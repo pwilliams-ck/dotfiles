@@ -2,12 +2,12 @@
 # bash-write-gate.sh — PreToolUse(Bash) gate.
 #
 # Permission tiers:
-#   reads + read-only git           -> allow (no prompt)
-#   local git writes (add, commit)  -> allow (no prompt)
+#   reads + read-only git/gh        -> allow (no prompt)
 #   create NEW file                 -> allow (no prompt)
-#   overwrite/modify EXISTING file  -> ask
 #   git pull --ff-only              -> allow (no prompt)
-#   LOCAL merge/rebase              -> allow (default) or deny (.claude-merge-off)
+#   local git writes (add, commit)  -> ask
+#   LOCAL merge/rebase              -> ask (default) or deny (.claude-merge-off)
+#   overwrite/modify EXISTING file  -> ask
 #   remote git writes (push), gh    -> ask (default) or deny (.claude-remote-off)
 #   REMOTE merge/rebase, gh pr merge-> deny, always. No marker changes it.
 #   force-push, push main, tags    -> deny (always)
@@ -90,11 +90,11 @@ git_sub_of(){ echo "$1" | sed -E 's/^[[:space:]]*git[[:space:]]+//' \
 
 first=$(word_of "$cmd")
 
-# Segments that read, filter, or write only in ways already in the allow tier.
-# Excludes push/pull/tag/reset/clean/checkout/restore/rm, and anything that
-# runs a command handed to it (xargs, eval, sh, find -exec).
+# Segments that read or filter — the only ones auto-allowed in compound commands.
+# Excludes all git writes (they ask individually), push/pull/tag/reset/clean,
+# and anything that runs a command handed to it (xargs, eval, sh, find -exec).
 seg_filters='cat|head|tail|less|more|grep|egrep|fgrep|rg|jq|yq|wc|sort|uniq|cut|tr|awk|sed|column|nl|fold|rev|tac|echo|printf|true|date|basename|dirname|pbcopy|cd|pwd|ls'
-seg_git='status|log|diff|show|reflog|shortlog|whatchanged|blame|describe|rev-parse|rev-list|merge-base|name-rev|symbolic-ref|var|cat-file|ls-files|ls-tree|for-each-ref|count-objects|grep|fetch|add|commit|switch|branch|stash|worktree|cherry-pick|revert|mv|config|remote'
+seg_git='status|log|diff|show|reflog|shortlog|whatchanged|blame|describe|rev-parse|rev-list|merge-base|name-rev|symbolic-ref|var|cat-file|ls-files|ls-tree|for-each-ref|count-objects|grep|fetch'
 # A block that has already validated its own subcommand against the remote and
 # marker rules adds it here before asking whether the rest of the line is safe.
 seg_extra_git=''
@@ -176,9 +176,24 @@ echo "$cmd" | grep -Eq '\bgit\b.*\bclean\b.*-[a-zA-Z]*f'     && emit deny "git c
 echo "$cmd" | grep -Eq '\brm\b[^|;&]*-[a-zA-Z]*(rf|fr)'      && emit deny "rm -rf is not allowed."
 echo "$cmd" | grep -Eq '\bshred\b'                           && emit deny "shred irreversibly destroys files — run it yourself."
 
-# ── REMOTE backstop (gh anywhere in the line) ──
+# ── read-only gh commands ──
 
 if echo "$cmd" | grep -Eq '\bgh\b'; then
+  # Only auto-allow read-only gh when gh is the verb in a simple command.
+  # Extract the subcommand and action from positional words to avoid matching
+  # gh substrings inside quoted arguments.
+  if [[ "$first" == "gh" && "$is_simple" == 1 && "$remote_off" == 0 ]]; then
+    gh_sub=$(echo "$cmd" | awk '{for(i=1;i<=NF;i++){if($i=="gh"){print $(i+1); exit}}}')
+    gh_action=$(echo "$cmd" | awk '{for(i=1;i<=NF;i++){if($i=="gh"){print $(i+2); exit}}}')
+    gh_read=0
+    case "$gh_sub" in
+      pr|issue|run|repo)
+        case "$gh_action" in view|list|diff|checks|status) gh_read=1 ;; esac ;;
+    esac
+    if [[ "$gh_read" == 1 ]] && ! echo "$cmd" | grep -Eq '>[^&]|^>|>$'; then
+      emit allow "Read-only gh command."
+    fi
+  fi
   remote_gate "gh CLI command"
 fi
 
@@ -224,10 +239,7 @@ If YOU run this yourself: git rewrites your local commits on top of the remote r
 
   [[ "$merge_off" == 1 ]] &&
     emit deny "Local git $op blocked — this repo is opted out (.claude-merge-off). Re-enable with: claude-gate merge on"
-  seg_extra_git='merge|rebase'
-  can_allow && emit allow "Local git $op — target is not a remote ref."
-  seg_extra_git=''
-  emit ask "Local git $op sits beside a command this gate does not recognise — check the whole line."
+  emit ask "Local git $op — needs approval."
 fi
 
 # ── branch switch with a dirty tree ──
@@ -271,11 +283,19 @@ if [[ "$first" == "git" ]]; then
     status|log|diff|show|reflog|shortlog|whatchanged|blame|describe|rev-parse|rev-list|\
     merge-base|name-rev|symbolic-ref|var|cat-file|ls-files|ls-tree|ls-remote|for-each-ref|count-objects|grep|fetch)
       can_allow && emit allow "Read-only git command." ;;
-    add|commit|switch|checkout|restore|reset|cherry-pick|revert|rm|mv|am|apply|submodule|worktree|clean)
-      can_allow && emit allow "Local git write command." ;;
+    add|commit|switch|checkout|restore|reset|cherry-pick|revert|rm|mv|am|apply|submodule|clean)
+      emit ask "Local git write ($sub) — needs approval." ;;
+    worktree)
+      if echo "$cmd" | grep -Eq 'worktree[[:space:]]+(list)([[:space:]]|[|;&]|$)'; then
+        can_allow && emit allow "git worktree listing."
+      else
+        emit ask "Local git write ($sub) — needs approval."
+      fi ;;
     branch)
       if echo "$cmd" | grep -Eq '\-(d|D|m|M|-delete|-force)\b'; then
-        can_allow && emit allow "Local git branch write."
+        emit ask "Local git branch mutation — needs approval."
+      elif echo "$cmd" | grep -Eq 'branch[[:space:]]+(-[^[:space:]]+[[:space:]]+)*[^-]'; then
+        emit ask "Local git branch create — needs approval."
       else
         can_allow && emit allow "git branch listing."
       fi ;;
@@ -284,19 +304,19 @@ if [[ "$first" == "git" ]]; then
       if echo "$cmd" | grep -Eq 'config[[:space:]].*(--get|--list|-l|(^| )get( |$))'; then
         can_allow && emit allow "git config (read)."
       else
-        can_allow && emit allow "Local git config write."
+        emit ask "Local git config write — needs approval."
       fi ;;
     remote)
-      if echo "$cmd" | grep -Eq 'remote([[:space:]]+(-v|show|get-url[^;&|]*))?[[:space:]]*$'; then
+      if echo "$cmd" | grep -Eq 'remote([[:space:]]+(-v|show|get-url))?([[:space:]]*$|[[:space:]]*[|;&])'; then
         can_allow && emit allow "git remote (read)."
       else
-        can_allow && emit allow "Local git remote config."
+        emit ask "Local git remote mutation — needs approval."
       fi ;;
     stash)
       if echo "$cmd" | grep -Eq 'stash[[:space:]]+(list|show)'; then
         can_allow && emit allow "git stash (read)."
       else
-        can_allow && emit allow "Local git write command."
+        emit ask "Local git stash write — needs approval."
       fi ;;
   esac
   exit 0

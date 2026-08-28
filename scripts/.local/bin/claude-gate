@@ -48,7 +48,7 @@ state() {
 describe() {
   case $1 in
     remote) echo "git push / gh:        on = ask,   off = deny" ;;
-    merge)  echo "LOCAL merge / rebase: on = allow, off = deny" ;;
+    merge)  echo "LOCAL merge / rebase: on = ask,   off = deny" ;;
     review) echo "on = commit blocked until the staged diff passes review" ;;
   esac
 }

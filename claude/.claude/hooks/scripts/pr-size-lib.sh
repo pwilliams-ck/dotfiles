@@ -14,6 +14,32 @@ PR_SIZE_WARN=350     # post-commit nudge fires above this
 # ERE of paths excluded from the budget.
 PR_SIZE_EXCLUDE_RE='(^|/)(vendor|node_modules|third_party|dist|build|docs)/|(^|/)go\.sum$|(^|/)package-lock\.json$|(^|/)pnpm-lock\.yaml$|\.lock$|\.pb\.go$|_gen\.go$|\.generated\.'
 
+# Reviewer routing threshold — staged diffs at or below this (after exclusions)
+# route to a cheaper reviewer model.
+REVIEW_SMALL_THRESHOLD=50
+
+# is_docs_only <gitdir> — 0 if all staged files are documentation, 1 otherwise.
+is_docs_only() {
+  local f
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    case "$f" in
+      *.md|*.txt|*.rst|*.adoc|docs/*|README*|CHANGELOG*|LICENSE*|CONTRIBUTING*) ;;
+      *) return 1 ;;
+    esac
+  done < <(git -C "$1" diff --staged --name-only)
+  return 0
+}
+
+# staged_net_lines <gitdir> — net added+deleted lines in the staged diff after
+# PR_SIZE_EXCLUDE_RE exclusions.
+staged_net_lines() {
+  git -C "$1" diff --staged --numstat | awk -v re="$PR_SIZE_EXCLUDE_RE" '
+    $3 ~ re { next }
+    { a = ($1=="-"?0:$1); d = ($2=="-"?0:$2); sum += a + d }
+    END { print sum+0 }'
+}
+
 # resolve_base <gitdir> [explicit] — echo the ref to diff against, or "" if none
 # can be determined. Prefers an explicit --base, then the remote default branch
 # (origin/HEAD), then the usual local/remote main/master names.

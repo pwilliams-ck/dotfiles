@@ -27,7 +27,7 @@ check() { # $1=desc $2=cwd $3=cmd $4=expected decision (deny|ask|allow|defer)
 check "commit on main (plain) denied"            "$T/repoA" 'git commit -m "x: y"'                     deny
 check "push from main denied"                    "$T/repoA" 'git push'                                 deny
 check "push explicit main denied"                "$T/repoB" 'git push origin main'                     deny
-check "local merge allowed by default"           "$T/repoB" 'git merge feat/y'                         allow
+check "local merge asks by default"               "$T/repoB" 'git merge feat/y'                         ask
 check "remote merge denied"                      "$T/repoB" 'git merge origin/feat/y'                  deny
 check "remote rebase denied"                     "$T/repoB" 'git rebase origin/feat/y'                 deny
 check "plain pull denied"                        "$T/repoB" 'git pull'                                 deny

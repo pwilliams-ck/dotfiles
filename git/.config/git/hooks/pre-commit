@@ -1,0 +1,61 @@
+#!/bin/sh
+# Global pre-commit (core.hooksPath): the human-side half of the review gate.
+# ~/.claude/hooks/scripts/review-gate.sh only sees a `git commit` that Claude
+# issues through its Bash tool; a commit typed in a terminal, or buried in a
+# Makefile or npm script, never passes through it. This hook runs inside git,
+# so every commit in an opted-in repo meets the same turnstile.
+#
+# Opt-in: the repo root is listed in ~/.claude/hooks/review-gate-repos
+# (`claude-gate review on`). Approval: the sentinel review-staged.sh writes on
+# VERDICT: PASS — the sha256 of `git diff --staged` — must equal the hash of
+# the index git is about to commit. This hook only ever denies; it never runs
+# the review itself, so the reviewer process stays the sentinel's only writer.
+#
+# Runs against the index being committed, whatever produced it: `commit -a`
+# has already staged by the time hooks run, and `commit <pathspec>` hands over
+# its temporary index in GIT_INDEX_FILE. The two bypasses review-gate.sh
+# documents as undetected are closed here — the hash simply won't match.
+#
+# Known bypasses: `git commit --no-verify`; a repo-local core.hooksPath.
+# Kill switches: ~/.claude/hooks/.disabled, ~/.claude/hooks/.no-review-gate
+# (shared with the Claude-side hook, so one touch silences both halves).
+
+hooks_dir="$HOME/.claude/hooks"
+
+chain_and_exit() {
+    # core.hooksPath replaces .git/hooks entirely — chain to the repo's own hook.
+    repo_hook="$(git rev-parse --git-common-dir)/hooks/pre-commit"
+    [ -x "$repo_hook" ] && exec "$repo_hook" "$@"
+    exit 0
+}
+
+[ -f "$hooks_dir/.disabled" ] && chain_and_exit "$@"
+[ -f "$hooks_dir/.no-review-gate" ] && chain_and_exit "$@"
+[ -f "$hooks_dir/review-gate-repos" ] || chain_and_exit "$@"
+
+# --git-common-dir, not --show-toplevel: a linked worktree resolves to the main
+# checkout, which is the path claude-gate writes to review-gate-repos.
+common=$(git rev-parse --git-common-dir 2>/dev/null) || chain_and_exit "$@"
+repo=$(cd "$common/.." 2>/dev/null && pwd -P) || chain_and_exit "$@"
+grep -Fxq "$repo" "$hooks_dir/review-gate-repos" || chain_and_exit "$@"
+
+sha() { shasum -a 256 | cut -d' ' -f1; }
+staged=$(git diff --staged | sha)
+# Nothing staged (message-only --amend, --allow-empty): nothing to review.
+[ "$staged" = "$(printf '' | sha)" ] && chain_and_exit "$@"
+
+key=$(printf '%s' "$repo" | sha)
+sentinel="$hooks_dir/state/review-ok-$key"
+[ -f "$sentinel" ] && [ "$(cat "$sentinel")" = "$staged" ] && chain_and_exit "$@"
+
+report="$hooks_dir/state/review-$key.md"
+top=$(git rev-parse --show-toplevel)
+{
+    echo "pre-commit: blocked — the staged diff has no passing fresh-context review."
+    echo "pre-commit: run   ~/.claude/hooks/scripts/review-staged.sh $top"
+    echo "pre-commit: watch: tail -f /tmp/claude-review-$key.log"
+    echo "pre-commit: on PASS it writes the approval; restaging anything invalidates it."
+    [ -f "$report" ] && echo "pre-commit: last report: $report"
+    echo "pre-commit: opted in via 'claude-gate review on'; 'claude-gate review off' lifts it."
+} >&2
+exit 1
