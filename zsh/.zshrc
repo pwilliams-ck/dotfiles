@@ -44,6 +44,29 @@ HIST_STAMPS="yyyy-mm-dd"
 # docker, kubectl, golang, direnv → completions (+ k, kgp, gob, got aliases)
 plugins=(git fzf docker kubectl golang direnv zsh-autosuggestions)
 
+# oh-my-zsh runs `compinit -i -d $ZSH_COMPDUMP` on every start, which rescans
+# every completion function and rewrites the dump. Trust a dump under 20 hours
+# old instead; -C loads it without the rescan. zstat rather than a glob
+# qualifier, because extended_glob would turn the ^f in bindkey into a pattern.
+zmodload -F zsh/stat b:zstat
+zmodload zsh/datetime
+compinit() {
+  unfunction compinit
+  autoload -Uz compinit
+  local dump=${ZSH_COMPDUMP:-${ZDOTDIR:-$HOME}/.zcompdump}
+  local -a st
+  zstat -A st +mtime "$dump" 2>/dev/null
+  if (( ${st[1]:-0} > EPOCHSECONDS - 72000 )); then
+    compinit -C "$@"
+  else
+    compinit "$@"
+  fi
+}
+
+# oh-my-zsh prepends each plugin directory to fpath three times, so compinit
+# scans 39 entries where 16 exist. -U dedupes later appends too.
+typeset -U fpath
+
 source $ZSH/oh-my-zsh.sh
 
 # Aliases and env live in $ZSH_CUSTOM (~/dotfiles/omz/), auto-sourced by the line above.
@@ -65,3 +88,6 @@ typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
 # direnv
 eval "$(direnv hook zsh)"
+
+# Added by Teamwork Graph CLI installer
+export PATH="/Users/pwilliams/.local/bin:$PATH"
