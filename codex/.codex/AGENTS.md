@@ -3,7 +3,7 @@
 ## Subagents
 
 - Default model for all Agent tool calls: `claude-sonnet-4-6[1m]`. Always pass `model: "sonnet"` unless a specific task demands a stronger model and I approve the upgrade.
-- Never more than 4 agents/workers total per session — subagents, tmux workers, and spawned sessions combined. If the work doesn't fit in 4, do it yourself or ask me.
+- Never more than 6 agents/workers total per session — subagents, tmux workers, and spawned sessions combined. If the work doesn't fit in 6, do it yourself or ask me.
 - Never launch anything with `--effort max`. Workers and spawned sessions run at this session's effort (omit the flag if unknown) on this session's model or one tier lower.
 
 ## Working agreement
@@ -40,7 +40,7 @@
 | --- | --- | --- | --- |
 | `remote` | on | `git push`, `gh` ask | both denied |
 | `merge` | on | **local** merge/rebase ask | both denied |
-| `review` | off | commit denied until the staged diff passes a fresh-context review | no review required |
+| `review` | off | push denied until the branch diff passes a fresh-context review | no review required |
 
 `remote` and `merge` are on unless the repo root carries an opt-out marker — `.claude-remote-off` or `.claude-merge-off` — so turning one off writes a file and turning it back on removes it. `review` is the reverse: off unless the repo is listed in `~/.claude/hooks/review-gate-repos`.
 
@@ -50,7 +50,7 @@ The markers are per checkout, so a worktree tightens separately from its parent;
 
 - `hooks/scripts/bash-write-gate.sh` — inspects command text before the tool runs. Fails closed: a crash denies the command.
 - `~/.config/git/hooks/{pre-push,pre-rebase,pre-merge-commit}` — run inside git, so they also catch operations buried in Makefiles, npm scripts, and `git pull`, which command-text inspection cannot see. They act only when `CLAUDECODE` is set, so my own terminal is unaffected.
-- `~/.config/git/hooks/pre-commit` — the human-side review gate. Runs for ALL commits (no `CLAUDECODE` guard) in repos opted into `review`, so both Claude and terminal commits meet the same turnstile. Kill switches: `~/.claude/hooks/.disabled`, `~/.claude/hooks/.no-review-gate`.
+- `~/.config/git/hooks/pre-push` — the human-side review gate, now pre-PR rather than pre-commit. Runs for ALL pushes (no `CLAUDECODE` guard) in repos opted into `review`, so both Claude and terminal pushes meet the same turnstile. The reviewed unit is the branch diff a PR would show, and the approval is keyed by that diff's own sha256, so a new commit or a rebase expires it and each worktree carries its own. `~/.claude/hooks/scripts/review-branch.sh` is the only writer of an approval. Kill switches: `~/.claude/hooks/.disabled`, `~/.claude/hooks/.no-review-gate`. `pre-commit` is now only a chainer to a repo's own hook.
 
 Whatever the toggles say, `pre-push` denies pushes to `main`/`master`, tags, branch deletions, and non-fast-forward pushes, deciding from the ref list on stdin rather than the current branch — so `git push origin HEAD:master` is caught from a feature branch. Known gaps, accepted: `--no-verify` skips all git hooks (the write gate denies that flag), a repo-local `core.hooksPath` such as husky overrides the global one, and a fast-forward merge writes no commit so `pre-merge-commit` never sees it.
 

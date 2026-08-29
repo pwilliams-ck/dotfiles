@@ -26,6 +26,24 @@ deny() {
     exit 1
 }
 
+# Mirrors resolve_base() in ~/.claude/hooks/scripts/pr-size-lib.sh. Duplicated
+# rather than sourced because this hook is dependency-free POSIX sh; the two
+# MUST stay in step or the hashes diverge and every push blocks.
+resolve_base() {
+    d=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null)
+    if [ -n "$d" ]; then
+        printf '%s' "${d#refs/remotes/}"
+        return 0
+    fi
+    for c in origin/main origin/master main master; do
+        if git rev-parse --verify --quiet "$c" >/dev/null 2>&1; then
+            printf '%s' "$c"
+            return 0
+        fi
+    done
+    return 0
+}
+
 if [ -n "$CLAUDECODE" ]; then
     # --show-toplevel, matching bash-write-gate.sh, so a worktree opts out
     # independently of its parent checkout.
@@ -42,6 +60,18 @@ if [ -n "$CLAUDECODE" ]; then
             refs/tags/*)
                 deny "pushing tags is the prod deploy trigger — human-only" ;;
         esac
+
+        # The literals above miss a repo whose trunk is named anything else —
+        # trunk, develop, production — leaving it with no protection at all.
+        # resolve_base() reports the real default branch (origin/HEAD first),
+        # so ask it rather than guessing from a name list.
+        if [ -z "${default_ref+x}" ]; then
+            db=$(resolve_base)
+            default_ref=""
+            [ -n "$db" ] && default_ref="refs/heads/${db#origin/}"
+        fi
+        [ -n "$default_ref" ] && [ "$remote_ref" = "$default_ref" ] &&
+            deny "pushing $remote_ref (this repo's default branch) is human-only"
 
         # An all-zero local sha is a branch deletion.
         case "$local_sha" in
@@ -63,6 +93,78 @@ if [ -n "$CLAUDECODE" ]; then
 $refs
 EOF
 fi
+
+# ---- review gate: the pre-PR turnstile ----
+# Runs for ALL pushes, not just Claude's (no CLAUDECODE guard), so a branch
+# pushed from a terminal meets the same bar as one pushed by an agent. Like
+# pre-commit, this hook only ever DENIES; review-branch.sh is the sole writer
+# of an approval, so the authoring session can never approve itself.
+#
+# The reviewed unit is the branch diff a PR would show, not a commit. Commits
+# are therefore free — which is what lets concurrent `/cycle --spawn` workers
+# commit in their own worktrees with no gate to switch off.
+#
+# Opt-in: the MAIN checkout is listed in ~/.claude/hooks/review-gate-repos
+# ('claude-gate review on'). Kill switches: ~/.claude/hooks/.disabled and
+# ~/.claude/hooks/.no-review-gate, shared with the other halves.
+hooks_dir="$HOME/.claude/hooks"
+review_gate() {
+    [ -f "$hooks_dir/.disabled" ] && return 0
+    [ -f "$hooks_dir/.no-review-gate" ] && return 0
+    [ -f "$hooks_dir/review-gate-repos" ] || return 0
+
+    # --git-common-dir, not --show-toplevel: a linked worktree resolves to the
+    # main checkout, which is the path claude-gate writes to review-gate-repos.
+    common=$(git rev-parse --git-common-dir 2>/dev/null) || return 0
+    main_root=$(cd "$common/.." 2>/dev/null && pwd -P) || return 0
+    grep -Fxq "$main_root" "$hooks_dir/review-gate-repos" || return 0
+
+    base=$(resolve_base) || return 0
+    # No resolvable default branch means no PR diff to hash. Fail OPEN here:
+    # the trunk, tag, deletion, and force denials above are untouched, and
+    # failing closed would make a repo with no origin/HEAD unpushable.
+    if [ -z "$base" ]; then
+        echo "pre-push: review gate skipped — no default branch resolved in $main_root" >&2
+        return 0
+    fi
+
+    empty_hash=$(printf '' | shasum -a 256 | cut -d' ' -f1)
+    while read -r local_ref local_sha remote_ref remote_sha; do
+        [ -z "$remote_ref" ] && continue
+        # An all-zero local sha is a deletion — no diff to review.
+        case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+
+        # Byte-identical to branch_diff() in review-branch.sh — same three-dot
+        # range, same pinned rendering flags. The hash is over rendered diff
+        # text, so an unpinned knob (core.abbrev rewrites the `index` line)
+        # makes review and push disagree and blocks every push. Change one
+        # side, change both.
+        diff_hash=$(git \
+            -c core.abbrev=40 \
+            -c diff.algorithm=myers \
+            -c diff.renames=true \
+            -c diff.noprefix=false \
+            -c diff.mnemonicPrefix=false \
+            diff --no-color --no-ext-diff --no-textconv --unified=3 \
+            "$base...$local_sha" 2>/dev/null | shasum -a 256 | cut -d' ' -f1)
+        [ "$diff_hash" = "$empty_hash" ] && continue
+        [ -f "$hooks_dir/state/review-ok-branch-$diff_hash" ] && continue
+
+        top=$(git rev-parse --show-toplevel)
+        {
+            echo "pre-push: blocked — $remote_ref has no passing review of its PR diff."
+            echo "pre-push: run   ~/.claude/hooks/scripts/review-branch.sh $top"
+            echo "pre-push: base $base, diff sha256 ${diff_hash}"
+            echo "pre-push: on PASS it writes the approval; any new commit or rebase invalidates it."
+            echo "pre-push: opted in via 'claude-gate review on'; 'claude-gate review off' lifts it."
+        } >&2
+        exit 1
+    done <<EOF
+$refs
+EOF
+}
+
+review_gate
 
 # core.hooksPath replaces .git/hooks entirely — chain to the repo's own
 # pre-push so repos with local hooks keep working. --git-dir, not

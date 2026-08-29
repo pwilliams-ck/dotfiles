@@ -35,7 +35,7 @@ Take the first row that matches.
 
 ### Sizing `--spawn`
 
-`N = min(independent ready tasks, 3)`. Drop to 2 when any task in the batch is `~L`, and don't spawn at all for a single ready task — a worktree plus a supervising head costs more than doing it inline. Spawn needs `$TMUX`; without it, recommend the sequential variant instead.
+`N = min(independent ready tasks, 4)`. Drop to 2 when any task in the batch is `~L`, and don't spawn at all for a single ready task — a worktree plus a supervising head costs more than doing it inline. Spawn needs `$TMUX`; without it, recommend the sequential variant instead.
 
 ### Prefer the cheaper variant
 
@@ -46,7 +46,7 @@ Take the first row that matches.
 One fenced block, last thing before the skill stops:
 
 ```
-Next: /clear, then /cycle --spawn 3
+Next: /clear, then /cycle --spawn 4
 Why: tasks 02, 04, 05 are independent and ~S.
 ```
 

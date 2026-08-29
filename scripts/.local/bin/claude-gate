@@ -4,7 +4,7 @@
 #   claude-gate                 status for this repo
 #   claude-gate remote on|off   git push / gh:       ask   <-> deny  (default on)
 #   claude-gate merge  on|off   LOCAL merge/rebase:  allow <-> deny  (default on)
-#   claude-gate review on|off   require a fresh-context review before commit
+#   claude-gate review on|off   require a fresh-context review before push
 #                                                                    (default off)
 #   claude-gate all off         tighten every toggle for this repo
 #
@@ -49,7 +49,7 @@ describe() {
   case $1 in
     remote) echo "git push / gh:        on = ask,   off = deny" ;;
     merge)  echo "LOCAL merge / rebase: on = ask,   off = deny" ;;
-    review) echo "on = commit blocked until the staged diff passes review" ;;
+    review) echo "on = push blocked until the branch diff passes review" ;;
   esac
 }
 

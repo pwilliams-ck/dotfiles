@@ -127,12 +127,16 @@ coin flip.
    (goal, acceptance criteria, grep-verified names) and embed it verbatim.
 2. **Branch + spec agent — alone, first.** Propose `git switch -c
    <type>/<slug>` (approval-gated); this is the feature branch, and the spec
-   agent's tests become its first commit(s). Spawn it in the main worktree:
+   agent's tests become its first commit(s). `<worker-model>` = this session's
+   model, or one tier lower (Fable → Opus → Sonnet → Haiku); never Fable.
+   `<worker-effort>` = `--effort <this session's effort>`, dropped entirely when
+   that effort is unknown. **Never `--effort max`.** Spawn it in the main
+   worktree:
 
    ```bash
    mkdir -p .git/contest
    win=$(tmux new-window -P -F '#{window_id}' -n contest -c "$PWD" \
-     "claude --model 'claude-opus-4-6[1m]' --effort max")
+     "claude --model '<worker-model>' <worker-effort>")
    spec_pane=$(tmux list-panes -t "$win" -F '#{pane_id}')
    tmux select-pane -t "$spec_pane" -T <slug>-spec   # readability only, never logic
    ```

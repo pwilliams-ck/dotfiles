@@ -1,6 +1,6 @@
 ---
 name: cycle
-description: Plan-and-execute loop for multi-task work in any repo. Seeds a lightweight TODO/ index, then iterates — detail the next 1-2 tasks just-in-time, execute, checkpoint the index, adjust, repeat. Planning is rolling: no big upfront research phase, so the plan is never further ahead of reality than the next task or two. Tasks declare the file globs they own; --spawn fans out tasks with disjoint ownership concurrently in git worktrees (auto-sized from the task graph, default cap 3). e.g. /cycle "add user preferences API", /cycle (continue next), /cycle 03 (specific task), /cycle --adjust (replan only), /cycle --spawn (concurrent fan-out in worktrees).
+description: Plan-and-execute loop for multi-task work in any repo. Seeds a lightweight TODO/ index, then iterates — detail the next 1-2 tasks just-in-time, execute, checkpoint the index, adjust, repeat. Planning is rolling: no big upfront research phase, so the plan is never further ahead of reality than the next task or two. Tasks declare the file globs they own; --spawn fans out tasks with disjoint ownership concurrently in git worktrees (auto-sized from the task graph, default cap 4). e.g. /cycle "add user preferences API", /cycle (continue next), /cycle 03 (specific task), /cycle --adjust (replan only), /cycle --spawn (concurrent fan-out in worktrees).
 ---
 
 ## Help
@@ -16,7 +16,7 @@ verbatim and **stop — do not execute the skill**.
   checkpoint the index, adjust, repeat. Planning is rolling, so the plan
   never runs further ahead of reality than a task or two. Tasks declare
   the file globs they own; --spawn fans out tasks with disjoint ownership
-  concurrently in git worktrees (auto-sized, default cap 3).
+  concurrently in git worktrees (auto-sized, default cap 4).
 
   /cycle "goal"                  seed a new cycle
   /cycle                         continue next ready task
@@ -52,7 +52,7 @@ it never relaxes them.
 /cycle            # continue: detail + execute the next ready task (reads TODO/README.md's Resume pointer + that task file's Handoff)
 /cycle NN         # jump to a specific task
 /cycle --adjust   # replan only — reorder/resize/add/drop, no execution
-/cycle --spawn [N]# fan out up to N independent tasks in worktrees (auto-sized if omitted, cap 3)
+/cycle --spawn [N]# fan out up to N independent tasks in worktrees (auto-sized if omitted, cap 4)
 /cycle --contest NN # competitive: spec agent writes tests, two workers implement task NN, winner by test count
 ```
 
@@ -66,7 +66,7 @@ it never relaxes them.
 
 **`<worker-model>`** = this session's model, or one tier lower (Fable → Opus → Sonnet → Haiku). Never Fable. **`<worker-effort>`** = this session's effort; if unknown, omit the `--effort` flag. **Never `--effort max`.**
 
-**Hard caps, all modes:** never more than **4** agents/workers live at once (tmux workers and `Agent()` subagents combined), and every worker seed must carry both caps so workers can't fan out either.
+**Hard caps, all modes:** never more than **6** agents/workers live at once (tmux workers and `Agent()` subagents combined), and every worker seed must carry both caps so workers can't fan out either.
 
 Implementation workers run as `claude` CLI sessions in a split pane (see phase 2). Lookups use `Agent()` with default model. **Never spawn Fable subagents.**
 
@@ -196,12 +196,19 @@ The head stays in the main worktree — it plans the batch, creates worktrees,
 spawns sessions, then **supervises**: reviews each worker's work as it reports
 in, and sends rework back down. It does **not** execute tasks during a spawn.
 
+**The review gate needs no preflight.** It runs at push time, not commit
+time, and its approval is keyed by the branch diff's own sha256 — so every
+worker commits freely in its own worktree and earns its own approval when it
+pushes. Never run `claude-gate review off` for a batch: it would lift the gate
+on the user's own pushes too, across the whole repo, for as long as the batch
+runs.
+
 1. **Size the batch.** Ready tasks (`[ ]`, deps `[x]`) that declare no dep on
    each other *and* whose `Owns` glob sets are pairwise disjoint. Compare the
    declared globs, not guesses about the diff: `src/api/**` and
    `src/api/auth/**` overlap, so those two tasks go in separate batches. A task
    with no `Owns` line is not batchable — give it one first.
-   Batch = `min(disjoint_ready, cap)`; cap = N or 3; prefer fewer for `~L`,
+   Batch = `min(disjoint_ready, cap)`; cap = N or 4; prefer fewer for `~L`,
    more for `~S`. Report the pick (`Spawning 3: tasks 02,04,05; deferred 03
    (dep on 02), 06 (Owns overlaps 04)`) and get one OK.
 2. **Detail the batch.** Phase 1 for each task; commit `TODO/` (approval-gated)
@@ -220,13 +227,22 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
    > commits). When done: push, offer gh pr create, then run /handoff so the
    > task file's Handoff section carries what landed and any surprises. Then
    > report to the supervisor — write
-   > `TODO/reports/taskNN.md` in the MAIN worktree at `<main-path>` (branch,
-   > commits, files touched, verify commands + their output, surprises, PR
-   > number if opened), and only once it is fully written and closed:
-   > `touch <main-path>/TODO/reports/taskNN.done`. If the supervisor sends
-   > rework, address it and re-report the same way (overwrite both files).
+   > `TODO/reports/taskNN.md` in the MAIN worktree at `<main-path>`. Line 1 is
+   > exactly `STATUS: green|blocked|rework — <8 words or fewer>`, line 2 is
+   > exactly `VERIFY: <command> exit <code>`; branch, commits, files touched,
+   > full verify output, surprises and PR number all go below those two lines.
+   > The supervisor reads only those two lines when STATUS is green, so a wrong
+   > line 1 costs it a full re-read. Run the project's verify command last and
+   > record its real exit code — a non-zero exit is `STATUS: blocked`, never
+   > green. Then `touch <main-path>/TODO/reports/taskNN.done` **whatever the
+   > exit code was**, once the report is closed. The `.done` file means "I have
+   > reported", not "I succeeded"; `STATUS` carries success. Withhold it on
+   > failure and the supervisor's monitor — which watches only `.done` and dead
+   > panes — never wakes, so a live worker that failed hangs the batch in
+   > silence. If the supervisor sends rework, address it and re-report the same
+   > way (overwrite both files).
    > Context budget: 15% nudge, never exceed 20%. Hard caps: never more than
-   > 4 subagents/workers total, never `--effort max`, and do implementation
+   > 6 subagents/workers total, never `--effort max`, and do implementation
    > work yourself rather than delegating it.
 
    First worker creates the window, the rest split it. Launch `claude` with
@@ -325,13 +341,49 @@ in, and sends rework back down. It does **not** execute tasks during a spawn.
 
 **On each `REPORT taskNN`** (auto-review):
 
-1. Read `TODO/reports/taskNN.md`, then delegate the diff read to a review agent
+1. Read the report's **first two lines only** (`head -2
+   TODO/reports/taskNN.md`). `STATUS: green` with `exit 0` → go straight to the
+   review agent. `blocked` → read the whole report, because the body carries the
+   failure, then decide: rework, re-scope, or take the task back. `rework` is
+   the supervisor's own marker, written when it sends a task back (step 4), so a
+   worker never assigns it — seeing it on an incoming report means the worker
+   is re-reporting after rework, and it is read exactly like `blocked`. Then delegate the diff read to a review agent
    (`run_in_background: false`) — the harness's code-review agent if one is
-   listed in the available agent types, otherwise `general-purpose` briefed as a
-   code reviewer in the prompt — pointed at the worktree with
-   `git diff <base>...<branch>` and the task file as the spec —
-   **the diff must land in the reviewer's context, not the head's**, or three
+   listed in the available agent types, otherwise `general-purpose` — pointed at
+   the worktree with `git diff <base>...<branch>` and the task file as the spec
+   — **the diff must land in the reviewer's context, not the head's**, or three
    reviews will blow the 15% budget.
+
+   Brief it as a senior reviewer with a fixed scope, in this order. A reviewer
+   told only "review this" returns style notes and misses the contract breaks:
+
+   - **Correctness.** Every finding carries a concrete failure: the input or
+     state that produces a wrong result, a crash, or a hang. No scenario, no
+     finding.
+   - **Security, data integrity, reliability.** Injection; secrets or tokens in
+     the diff; widened permissions; a bypassed gate (`--no-verify`, a repo-local
+     `core.hooksPath`, a hand-written marker). Lost or double-applied writes,
+     and partial failure that leaves inconsistent state. Races, unbounded
+     retries, missing timeouts.
+   - **Repo rules.** Read the repo's CLAUDE.md/AGENTS.md and the docs whose
+     trigger matches the diff, then judge the diff against those — not against
+     generic best practice.
+   - **Patterns and style.** Match the surrounding code and each file's own
+     prevailing convention: naming, error handling, comment policy, prose wrap.
+   - **Tests.** Changed behaviour with no test is a finding. Judge by reading
+     the test files. A stub that neuters the path under test is a finding too,
+     because it turns a green suite into no coverage.
+   - **CI.** **Read** the workflows, Makefile, or hook config and judge whether
+     the diff clears each job. **Never run CI**, a linter, or a formatter — the
+     reviewer reads, the worker runs. Say so plainly when the repo has no CI.
+   - **Docs.** A limit, flag, or behaviour stated in two places where only one
+     moved is a finding.
+
+   Require this output shape, and read a missing or garbled verdict as `FAIL`:
+   `path:line — blocker|major|minor — defect`, then an `Evidence:` line (quoted
+   text or command output) and an `Effect:` line (the concrete failure); then
+   `## Unverified`; then a last line of `VERDICT: PASS` or `VERDICT: FAIL`.
+   Cap the reviewer at 25 tool calls — over-budget is worse than incomplete.
 2. Assert the write scope — `git diff --name-only <base>...<branch>` against the
    task's `Owns` globs. Any file outside them is a rework trigger even when the
    code is right: it voids the disjointness the batch was sized on and may have

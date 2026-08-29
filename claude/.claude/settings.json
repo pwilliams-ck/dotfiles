@@ -92,11 +92,6 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/scripts/review-gate.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "~/.claude/hooks/scripts/pr-size-gate.sh",
             "timeout": 10
           }
@@ -184,6 +179,9 @@
       "effortLevel": "xhigh"
     },
     "claude-opus-5": {
+      "effortLevel": "xhigh"
+    },
+    "claude-opus-4-6": {
       "effortLevel": "xhigh"
     }
   },

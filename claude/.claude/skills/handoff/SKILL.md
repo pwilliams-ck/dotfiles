@@ -17,7 +17,7 @@ verbatim and **stop — do not execute the skill**.
   REVISIT / BLOCKED, replaces the stale handoff rather than appending,
   and routes recurring knowledge out to TODO/notes/ and unowned problems
   to ISSUES.md. Ends by recommending the one command to run next
-  (e.g. /cycle --spawn 3), picked from the plan's remaining task graph.
+  (e.g. /cycle --spawn 4), picked from the plan's remaining task graph.
 
   /handoff                       handoff into the live task file
   /handoff NN                    force task NN as the target
