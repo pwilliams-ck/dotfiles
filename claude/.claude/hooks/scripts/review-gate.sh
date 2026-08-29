@@ -59,12 +59,11 @@ staged_hash=$(git -C "$dir" diff --staged | shasum -a 256 | awk '{print $1}')
 empty_hash=$(printf '' | shasum -a 256 | awk '{print $1}')
 [[ "$staged_hash" == "$empty_hash" ]] && exit 0  # nothing staged -> normal ask
 
-repo_key=$(printf '%s' "$repo" | shasum -a 256 | awk '{print $1}')
-sentinel="$HOOKS_DIR/state/review-ok-$repo_key"
-report="$HOOKS_DIR/state/review-$repo_key.md"
-# the reviewer must diff the worktree the model is in; the sentinel is keyed by $repo
 top=$(git -C "$dir" rev-parse --show-toplevel)
-live="/tmp/claude-review-$repo_key.log"
+wt_key=$(printf '%s' "$top" | shasum -a 256 | awk '{print $1}')
+sentinel="$HOOKS_DIR/state/review-ok-$wt_key"
+report="$HOOKS_DIR/state/review-$wt_key.md"
+live="/tmp/claude-review-$wt_key.log"
 
 [[ -f "$sentinel" && "$(<"$sentinel")" == "$staged_hash" ]] && exit 0  # reviewed -> static ask
 
@@ -77,7 +76,7 @@ $(<"$report")
 
 # Escalation: after 3+ consecutive FAILs on this staged hash, downgrade deny → ask.
 # Checked before the fable gate so a fable session with repeated failures can still escalate.
-failcount="$HOOKS_DIR/state/review-fails-$repo_key"
+failcount="$HOOKS_DIR/state/review-fails-$wt_key"
 review_fails=0
 if [[ -f "$failcount" ]]; then
   _fc_hash=$(sed -n '1p' "$failcount" 2>/dev/null)

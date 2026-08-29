@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Tests for review-staged.sh: the pure helpers via REVIEW_STAGED_LIB_ONLY, and
 # the target resolution via --dry-run, which stops before claude is invoked.
-# A linked worktree is the case that matters: the sentinel keys off the MAIN
-# checkout (matching review-gate.sh and claude-gate) while the diff must come
-# from the worktree that was passed in.
+# A linked worktree is the case that matters: the sentinel keys off the
+# WORKTREE toplevel (so concurrent worktrees don't clobber each other's
+# approvals) while the opt-in check keys off the main checkout.
 set -u
 SCRIPT="$(cd "$(dirname "$0")" && pwd)/review-staged.sh"
 T=$(mktemp -d)
@@ -59,20 +59,21 @@ echo in-wt   > "$W/f";  g -C "$W" add f
 wt_hash=$(g -C "$W" diff --staged | sha)
 main_hash=$(g -C "$M" diff --staged | sha)
 [[ "$wt_hash" != "$main_hash" ]] || { echo "test setup: hashes must differ"; exit 1; }
-key=$(printf '%s' "$main_real" | sha)
+wt_real=$(cd "$W" && pwd -P)
+wt_key=$(printf '%s' "$wt_real" | sha)
 
 out=$("$SCRIPT" "$W" --dry-run)
 check "dry-run: staged hash is the worktree's"        "$wt_hash"                                        "$(sed -n 's/^staged=//p' <<<"$out")"
 check "dry-run: repo is the main checkout"            "$main_real"                                      "$(sed -n 's/^repo=//p' <<<"$out")"
-check "dry-run: worktree is the worktree"             "$(cd "$W" && pwd -P)"                            "$(sed -n 's/^worktree=//p' <<<"$out")"
-check "dry-run: sentinel keyed by main checkout"      "$HOME/.claude/hooks/state/review-ok-$key"        "$(sed -n 's/^sentinel=//p' <<<"$out")"
+check "dry-run: worktree is the worktree"             "$wt_real"                                        "$(sed -n 's/^worktree=//p' <<<"$out")"
+check "dry-run: sentinel keyed by worktree"           "$HOME/.claude/hooks/state/review-ok-$wt_key"    "$(sed -n 's/^sentinel=//p' <<<"$out")"
 
 out=$("$SCRIPT" "$W/sub" --dry-run)
 check "dry-run from a subdir resolves the worktree"   "$wt_hash"                                        "$(sed -n 's/^staged=//p' <<<"$out")"
 
-printf '%s\n' "$wt_hash" > "$HOME/.claude/hooks/state/review-ok-$key"
+printf '%s\n' "$wt_hash" > "$HOME/.claude/hooks/state/review-ok-$wt_key"
 "$SCRIPT" "$W" --dry-run >/dev/null
-check "dry-run leaves an existing approval in place"  "$wt_hash" "$(cat "$HOME/.claude/hooks/state/review-ok-$key" 2>/dev/null)"
+check "dry-run leaves an existing approval in place"  "$wt_hash" "$(cat "$HOME/.claude/hooks/state/review-ok-$wt_key" 2>/dev/null)"
 
 echo "---"
 echo "$pass passed, $fail failed"

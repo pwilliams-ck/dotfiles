@@ -83,11 +83,11 @@ staged_lines=$(staged_net_lines "$worktree")
 is_docs_only "$worktree" && docs_only=1 || docs_only=0
 is_small=$(( staged_lines <= REVIEW_SMALL_THRESHOLD || docs_only == 1 ))
 
-key=$(printf '%s' "$repo" | shasum -a 256 | awk '{print $1}')
+key=$(printf '%s' "$worktree" | shasum -a 256 | awk '{print $1}')
 state="$HOME/.claude/hooks/state"; mkdir -p "$state"
 report="$state/review-$key.md"
 sentinel="$state/review-ok-$key"
-live="/tmp/claude-review-$key.log"   # human-readable live progress, tailable from another terminal
+live="/tmp/claude-review-$key.log"
 if [[ -n "$dry_run" ]]; then
   printf 'worktree=%s\nrepo=%s\nstaged=%s\nsentinel=%s\n' "$worktree" "$repo" "$hash" "$sentinel"
   exit 0
