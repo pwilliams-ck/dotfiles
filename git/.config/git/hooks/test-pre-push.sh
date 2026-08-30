@@ -83,10 +83,8 @@ touch "$HOME/.claude/hooks/.disabled"
 push refs/heads/feat "$(g rev-parse HEAD)"; check ".disabled lifts the gate" 0 $?
 rm "$HOME/.claude/hooks/.disabled"
 
-# ---- the property the commit-time gate could not hold ----
-# review-staged.sh keyed the sentinel by worktree while pre-commit looked it up
-# by main checkout, so an approval earned in a linked worktree was never found.
-# Content-keying removes the path from the key entirely.
+# ---- content-keying: an approval is found from any worktree ----
+# The sentinel carries no path, so a linked worktree earns and honours its own.
 g worktree add -q -b wt "$S/wt" >/dev/null 2>&1; cd "$S/wt"
 echo wt > c.txt; g add c.txt; g commit -qm wt
 wt_tip=$(g rev-parse HEAD)

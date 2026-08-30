@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # review-branch.sh <checkout-path> — adversarial fresh-context review of a
-# branch's PR diff (<base>...HEAD) via headless `claude -p`. The pre-PR half of
-# the review gate: same mechanism as review-staged.sh, different review unit.
+# branch's PR diff (<base>...HEAD) via headless `claude -p`. The sole writer of
+# a review approval, consumed by pre-push's review_gate().
 #
 # Why the branch diff and not the staged diff: a squash-merged PR lands as one
 # commit, so the branch diff IS the artifact that ships. Reviewing per commit
@@ -13,9 +13,8 @@
 # The sentinel is named for the sha256 of the diff itself, with no repo or
 # worktree path in the key. Three consequences, all deliberate:
 #   - Two worktrees of one repo hold independent approvals, so concurrent
-#     `/cycle --spawn` workers each carry their own review. review-staged.sh
-#     keys by worktree while pre-commit looks up by main checkout, which is why
-#     the commit-time gate could never be satisfied from a linked worktree.
+#     `/cycle --spawn` workers each carry their own review, and an approval
+#     earned in a linked worktree is found from anywhere.
 #   - A new commit, a rebase, or an amend changes the diff and therefore the
 #     hash, so the approval expires on its own with nothing to invalidate.
 #   - Re-reviewing an unchanged branch is free: the sentinel is already there.
@@ -24,8 +23,10 @@
 # session never writes its own approval. Fail-closed: a missing or garbled
 # verdict counts as FAIL.
 #
-# Reviewer model: sonnet by default. --model <name> or CLAUDE_REVIEW_MODEL
-# overrides for a deeper review at a stronger tier.
+# Reviewer model: opus by default. The alias tracks the newest Opus, so a
+# sonnet, opus-4.6, or opus-4.8 author all draw the same top-tier reviewer
+# instead of one weaker than themselves. --model <name> or CLAUDE_REVIEW_MODEL
+# overrides.
 # Reviewer effort: one level above the author's (low→medium→high→xhigh),
 # capped at xhigh — never max. --bump doubles the step (+2 instead of +1).
 set -euo pipefail
@@ -97,7 +98,9 @@ hash=$(branch_diff "$worktree" "$base" "$tip" | shasum -a 256 | awk '{print $1}'
 empty=$(printf '' | shasum -a 256 | awk '{print $1}')
 [[ "$hash" == "$empty" ]] && { echo "review-branch: $base...HEAD is empty in $worktree — nothing to review" >&2; exit 1; }
 
-# diff-size routing: small or docs-only branches get the cheaper reviewer
+# Reported in the status line and --dry-run so the size of what is being
+# reviewed is visible. Neither value routes the model: the reviewer is opus for
+# every diff, because a small diff is not a shallow one.
 branch_lines=$(net_changed_lines "$worktree" "$base")
 docs_only=1
 while IFS= read -r f; do
@@ -189,13 +192,13 @@ if [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 
-# Precedence: --model > CLAUDE_REVIEW_MODEL > sonnet (default).
+# Precedence: --model > CLAUDE_REVIEW_MODEL > opus (default).
 if [[ -n "$cli_model" ]]; then
   review_model="$cli_model"
 elif [[ -n "${CLAUDE_REVIEW_MODEL:-}" ]]; then
   review_model="$CLAUDE_REVIEW_MODEL"
 else
-  review_model=sonnet
+  review_model=opus
 fi
 
 base_effort="${caller_effort:-medium}"

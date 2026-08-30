@@ -151,10 +151,16 @@ review_gate() {
         [ -f "$hooks_dir/state/review-ok-branch-$diff_hash" ] && continue
 
         top=$(git rev-parse --show-toplevel)
+        # Mirrors the repokey review-branch.sh derives (sha256 of the worktree
+        # path, NOT of the diff) so the paths named below are the ones it will
+        # write. Path-keyed on purpose: one readable latest report per worktree.
+        repokey=$(printf '%s' "$top" | shasum -a 256 | cut -d' ' -f1)
         {
             echo "pre-push: blocked — $remote_ref has no passing review of its PR diff."
             echo "pre-push: run   ~/.claude/hooks/scripts/review-branch.sh $top"
             echo "pre-push: base $base, diff sha256 ${diff_hash}"
+            echo "pre-push: findings -> $hooks_dir/state/review-branch-$repokey.md"
+            echo "pre-push: live log -> /tmp/claude-review-branch-$repokey.log (tail -f it from another terminal)"
             echo "pre-push: on PASS it writes the approval; any new commit or rebase invalidates it."
             echo "pre-push: opted in via 'claude-gate review on'; 'claude-gate review off' lifts it."
         } >&2
