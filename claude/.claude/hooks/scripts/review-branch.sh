@@ -185,7 +185,10 @@ prompt="${prompt/ACCEPTED_RISKS_PLACEHOLDER/$accept_section}"
 caller_model=""
 caller_effort=""
 if [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]] && command -v jq >/dev/null 2>&1; then
-  tp=$(find "$HOME/.claude/projects" -name "${CLAUDE_CODE_SESSION_ID}.jsonl" 2>/dev/null | head -1)
+  # || true: under pipefail a missing projects dir makes find exit 1, which
+  # set -e turns into a silent death with no verdict and no report. Author
+  # detection is best-effort — not finding a transcript must not end the review.
+  tp=$(find "$HOME/.claude/projects" -name "${CLAUDE_CODE_SESSION_ID}.jsonl" 2>/dev/null | head -1 || true)
   if [[ -n "$tp" ]]; then
     caller_model=$(jq -r 'select(.type=="assistant") | .message.model // empty' "$tp" 2>/dev/null | tail -1)
     caller_effort=$(jq -r 'select(.type=="system" and .subtype=="init") | .cliEffort // .effort // empty' "$tp" 2>/dev/null | tail -1)
