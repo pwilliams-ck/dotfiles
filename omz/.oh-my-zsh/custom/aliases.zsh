@@ -48,6 +48,7 @@ alias dud="dust -d1"             # what's eating this dir
 
 # Git — human-only operations; see hbops CLAUDE.md
 # omz git plugin already gives gst/gd/gco/gcm/glol/grbi/gwip…
+alias ghi="githelp" # zsh git plugin commands
 alias lgit="lazygit"
 alias prs="gh pr list --author @me"
 alias prv="gh pr view --web"

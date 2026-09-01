@@ -155,16 +155,9 @@
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
     "js-lsp@local-plugins": true,
-    "i-have-adhd@i-have-adhd": true,
     "iso-24495-plain-language@iso-24495": true
   },
   "extraKnownMarketplaces": {
-    "i-have-adhd": {
-      "source": {
-        "source": "github",
-        "repo": "ayghri/i-have-adhd"
-      }
-    },
     "iso-24495": {
       "source": {
         "source": "git",
